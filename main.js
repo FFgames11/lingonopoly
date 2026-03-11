@@ -104,6 +104,101 @@ const labels = [
   'Final Frame',
 ];
 
+const tileThemes = {
+  orangeHome: {
+    top: '#ffba4f',
+    bottom: '#f88d1f',
+    edge: '#d96e12',
+    edgeDark: '#b55508',
+    shadow: 'rgba(167, 88, 17, 0.28)',
+    glow: 'rgba(255, 195, 110, 0.44)',
+    icon: `
+      <svg aria-hidden="true" class="tile-icon-svg" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" fill="none" r="17" stroke="currentColor" stroke-width="4.5"></circle>
+        <path d="M23 35.5V30.5L32 24L41 30.5V39.5H34.5V34.5H29.5V39.5H23Z" fill="currentColor"></path>
+      </svg>
+    `,
+  },
+  pinkPlay: {
+    top: '#e57ae4',
+    bottom: '#c64fcc',
+    edge: '#a632ae',
+    edgeDark: '#85238b',
+    shadow: 'rgba(139, 38, 146, 0.25)',
+    glow: 'rgba(238, 154, 246, 0.36)',
+    icon: `
+      <svg aria-hidden="true" class="tile-icon-svg" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" fill="none" r="17" stroke="currentColor" stroke-width="4.5"></circle>
+        <path d="M29.5 26.5L38.5 32L29.5 37.5V26.5Z" fill="currentColor"></path>
+      </svg>
+    `,
+  },
+  blueSpark: {
+    top: '#76b8ff',
+    bottom: '#4291f1',
+    edge: '#2b73db',
+    edgeDark: '#1f57af',
+    shadow: 'rgba(33, 91, 171, 0.26)',
+    glow: 'rgba(147, 205, 255, 0.34)',
+    icon: `
+      <svg aria-hidden="true" class="tile-icon-svg" viewBox="0 0 64 64">
+        <path d="M32 16L37.2 25.6L48 23L44.4 33.1L53 40L41.7 41.4L40 52L32 44.8L24 52L22.3 41.4L11 40L19.6 33.1L16 23L26.8 25.6L32 16Z" fill="currentColor"></path>
+      </svg>
+    `,
+  },
+  goldCheck: {
+    top: '#f1d65b',
+    bottom: '#d6b438',
+    edge: '#b58f18',
+    edgeDark: '#8d6f11',
+    shadow: 'rgba(137, 111, 17, 0.24)',
+    glow: 'rgba(246, 223, 111, 0.36)',
+    icon: `
+      <svg aria-hidden="true" class="tile-icon-svg" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" fill="none" r="17" stroke="currentColor" stroke-width="4.5"></circle>
+        <path d="M25.5 32.5L30 37L39 28" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"></path>
+      </svg>
+    `,
+  },
+  slateBars: {
+    top: '#85919c',
+    bottom: '#606c77',
+    edge: '#49545e',
+    edgeDark: '#374049',
+    shadow: 'rgba(52, 61, 69, 0.28)',
+    glow: 'rgba(167, 179, 190, 0.2)',
+    icon: `
+      <svg aria-hidden="true" class="tile-icon-svg" viewBox="0 0 64 64">
+        <path d="M22 22L29 18L29 46L22 50V22Z" fill="currentColor" opacity="0.92"></path>
+        <path d="M32 18L39 14L39 42L32 46V18Z" fill="currentColor" opacity="0.78"></path>
+        <path d="M42 22L49 18L49 46L42 50V22Z" fill="currentColor" opacity="0.64"></path>
+      </svg>
+    `,
+  },
+  periwinkleMark: {
+    top: '#93a8e3',
+    bottom: '#6e84c8',
+    edge: '#5267a6',
+    edgeDark: '#3f507f',
+    shadow: 'rgba(73, 92, 152, 0.24)',
+    glow: 'rgba(179, 194, 245, 0.22)',
+    icon: `
+      <svg aria-hidden="true" class="tile-icon-svg" viewBox="0 0 64 64">
+        <path d="M32 22L36.5 27.5L44 32L36.5 36.5L32 42L27.5 36.5L20 32L27.5 27.5L32 22Z" fill="currentColor"></path>
+      </svg>
+    `,
+  },
+};
+
+const tileThemeSequence = [
+  tileThemes.orangeHome,
+  tileThemes.pinkPlay,
+  tileThemes.blueSpark,
+  tileThemes.goldCheck,
+  tileThemes.slateBars,
+  tileThemes.periwinkleMark,
+];
+
 const state = {
   tiles: [],
   position: 0,
@@ -181,6 +276,31 @@ function toScreenPosition(x, y) {
   };
 }
 
+function getTileTheme(index, kind) {
+  if (kind === 'start') {
+    return tileThemes.orangeHome;
+  }
+
+  if (kind === 'event') {
+    return index % 4 === 0 ? tileThemes.goldCheck : tileThemes.blueSpark;
+  }
+
+  return tileThemeSequence[(index + 1) % tileThemeSequence.length];
+}
+
+function getTileStyle(tile) {
+  return [
+    `left:${tile.screenX}px`,
+    `top:${tile.screenY}px`,
+    `--tile-top:${tile.theme.top}`,
+    `--tile-bottom:${tile.theme.bottom}`,
+    `--tile-edge:${tile.theme.edge}`,
+    `--tile-edge-dark:${tile.theme.edgeDark}`,
+    `--tile-shadow:${tile.theme.shadow}`,
+    `--tile-glow:${tile.theme.glow}`,
+  ].join(';');
+}
+
 function buildRingCoordinates(size) {
   const max = size - 1;
   const coords = [];
@@ -207,10 +327,12 @@ function buildRingCoordinates(size) {
 function buildTiles() {
   return buildRingCoordinates(7).map((coord, index) => {
     const kind = index === 0 ? 'start' : tileKinds[(index - 1) % tileKinds.length];
+    const theme = getTileTheme(index, kind);
     return {
       id: `tile-${index}`,
       label: labels[index] || `Tile ${index + 1}`,
       kind,
+      theme,
       gridX: coord.x,
       gridY: coord.y,
       ...toScreenPosition(coord.x, coord.y),
@@ -294,8 +416,8 @@ function renderCamera() {
   const currentTile = state.tiles[state.position];
   const stageWidth = dom.boardStage.clientWidth;
   const stageHeight = dom.boardStage.clientHeight;
-  const tileCenterX = currentTile.screenX + 26;
-  const tileCenterY = currentTile.screenY + 26;
+  const tileCenterX = currentTile.screenX + 28;
+  const tileCenterY = currentTile.screenY + 28;
   const targetX = stageWidth * 0.5;
   const targetY = stageHeight * 0.56;
   const translateX = targetX - tileCenterX;
@@ -309,7 +431,9 @@ function renderBoard() {
     .map((tile, index) => {
       const currentClass = index === state.position ? 'is-current' : '';
       return `
-        <article class="board-tile tile-${tile.kind} ${currentClass}" aria-label="${tile.label}" style="left:${tile.screenX}px;top:${tile.screenY}px;"></article>
+        <article class="board-tile tile-${tile.kind} ${currentClass}" aria-label="${tile.label}" style="${getTileStyle(tile)}">
+          <span class="tile-icon" aria-hidden="true">${tile.theme.icon}</span>
+        </article>
       `;
     })
     .join('');
@@ -317,7 +441,7 @@ function renderBoard() {
   const currentTile = state.tiles[state.position];
   const tokenMarkup = currentTile
     ? `
-      <div class="player-token ${state.isMoving ? 'is-travelling' : ''}" style="left:${currentTile.screenX}px;top:${currentTile.screenY - 44}px;">
+      <div class="player-token ${state.isMoving ? 'is-travelling' : ''}" style="left:${currentTile.screenX + 6}px;top:${currentTile.screenY - 40}px;">
         <div class="token-shadow"></div>
         <div class="token-body">
           <span class="token-head"></span>
