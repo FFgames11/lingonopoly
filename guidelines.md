@@ -133,7 +133,7 @@ Tracked fields:
 - Mobile-first composition constrained around a portrait game screen
 - Bright pastel background gradients
 - Floating white HUD panels with soft shadows
-- Isometric diamond-shaped board tiles
+- Isometric rounded-corner board tiles with an inset panel, soft texture, and slight volume
 - Centerpiece red dice button with arcade-style motion
 - Cartoon token with simple layered body parts
 - Decorative game-economy style labels such as `Mayor`, `Lv. 2`, `Tile`, and `Mode`
@@ -177,6 +177,10 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 - Keep reconstructed notes synchronized with actual git commits and replace them with commit-backed changelog notes where possible.
 - When adding new UI controls, state clearly whether they are decorative or functional.
 - If board logic becomes more complex, move hardcoded board content into structured data rather than expanding inline arrays further.
+
+### 2026-03-11
+- Restored the larger stylized board tile treatment with rounded corners, inset borders, light texture, and extra depth.
+- Kept the existing board coordinate system, tile arrangement, and token alignment unchanged while updating the tile visuals.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:

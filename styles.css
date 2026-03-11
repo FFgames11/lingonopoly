@@ -343,62 +343,70 @@ button {
 
 .board-tile {
   position: absolute;
-  width: 52px;
-  height: 52px;
-  background: linear-gradient(180deg, var(--navy-tile), var(--navy-tile-alt));
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  width: 60px;
+  height: 60px;
+  transform: translate(-4px, -4px) rotate(45deg);
+  transform-origin: center;
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.34), transparent 36%),
+    linear-gradient(180deg, var(--navy-tile), var(--navy-tile-alt));
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow:
-    inset 0 -6px 0 rgba(4, 38, 68, 0.35),
-    0 10px 16px rgba(24, 56, 86, 0.2);
+    inset 0 2px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -10px 0 rgba(7, 31, 58, 0.34),
+    0 10px 18px rgba(18, 52, 81, 0.26),
+    0 4px 0 rgba(15, 45, 70, 0.34);
 }
 
 .board-tile::before {
   content: "";
   position: absolute;
-  inset: 4px;
-  border: 2px solid rgba(255, 255, 255, 0.08);
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-
-.board-tile::after {
-  content: "";
-  position: absolute;
-  left: 9px;
-  right: 9px;
-  bottom: -12px;
-  height: 12px;
-  border-radius: 50%;
-  background: rgba(18, 57, 90, 0.2);
-  filter: blur(6px);
+  inset: 7px;
+  border-radius: 11px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02)),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.11) 0 3px,
+      rgba(255, 255, 255, 0.02) 3px 7px
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -5px 0 rgba(8, 32, 56, 0.18);
 }
 
 .tile-start {
-  background: linear-gradient(180deg, #2d7ba4, #184d72);
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.38), transparent 36%),
+    linear-gradient(180deg, #4aa0c8, #1f5f87);
 }
 
 .tile-property {
-  background: linear-gradient(180deg, #1d6093, #194a76);
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.34), transparent 36%),
+    linear-gradient(180deg, #2d77af, #1b4d79);
 }
 
 .tile-event {
-  background: linear-gradient(180deg, #245f95, #143d63);
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.34), transparent 36%),
+    linear-gradient(180deg, #3a81b4, #1a476e);
 }
 
 .board-tile.is-current {
-  background: linear-gradient(180deg, #348cd3, #1f639c);
-}
-
-.board-tile.is-current::after {
-  content: "";
-  position: absolute;
-  left: -8px;
-  right: -8px;
-  top: -8px;
-  bottom: -8px;
-  border: 4px solid rgba(255, 255, 255, 0.54);
-  background: transparent;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  filter: none;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.42), transparent 38%),
+    linear-gradient(180deg, #4ea9ef, #2a6fa8);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -10px 0 rgba(10, 45, 78, 0.32),
+    0 12px 20px rgba(20, 70, 108, 0.3),
+    0 4px 0 rgba(19, 60, 90, 0.36),
+    0 0 0 4px rgba(255, 255, 255, 0.5),
+    0 0 24px rgba(103, 189, 255, 0.28);
 }
 
 .player-token {
