@@ -208,9 +208,23 @@ const state = {
   boardMode: 'solo',
   isRolling: false,
   isMoving: false,
+  facing: 'SE',
+  isJumping: false,
 };
 
 let diceIntervalId = null;
+let statusTimeoutId = null;
+
+function getDirection(from, to) {
+  const dx = to.gridX - from.gridX;
+  const dy = to.gridY - from.gridY;
+
+  if (dx > 0) return 'SE';
+  if (dx < 0) return 'NW';
+  if (dy > 0) return 'SW';
+  if (dy < 0) return 'NE';
+  return state.facing;
+}
 
 const dom = {
   status: document.querySelector('[data-role="status"]'),
@@ -442,12 +456,10 @@ function renderBoard() {
   const currentTile = state.tiles[state.position];
   const tokenMarkup = currentTile
     ? `
-      <div class="player-token ${state.isMoving ? 'is-travelling' : ''}" style="left:${currentTile.screenX + tileWidth / 2 - 26}px;top:${currentTile.screenY + tileHeight - 84}px;z-index:${currentTile.screenY + 1};">
+      <div class="player-token ${state.isJumping ? 'is-jumping' : ''}" 
+           data-facing="${state.facing}"
+           style="left:${currentTile.screenX + tileWidth / 2 - 64}px;top:${currentTile.screenY + tileHeight / 2 - 108}px;z-index:${currentTile.screenY + 1};">
         <div class="token-shadow"></div>
-        <div class="token-body">
-          <span class="token-head"></span>
-          <span class="token-core"></span>
-        </div>
       </div>
     `
     : '';
@@ -464,6 +476,20 @@ function render() {
 
 function updateState(partialState) {
   Object.assign(state, partialState);
+
+  if (partialState.status) {
+    dom.status.classList.add('is-active');
+
+    if (statusTimeoutId) {
+      window.clearTimeout(statusTimeoutId);
+    }
+
+    statusTimeoutId = window.setTimeout(() => {
+      dom.status.classList.remove('is-active');
+      statusTimeoutId = null;
+    }, 3000);
+  }
+
   render();
 }
 
@@ -473,18 +499,33 @@ async function moveToken(steps) {
     status: `Moving ${steps} tile${steps === 1 ? '' : 's'}...`,
   });
 
-  let nextIndex = state.position;
-
   for (let step = 0; step < steps; step += 1) {
-    await delay(stepDelayMs);
-    nextIndex = (nextIndex + 1) % state.tiles.length;
-    updateState({ position: nextIndex });
+    const fromIndex = state.position;
+    const nextIndex = (fromIndex + 1) % state.tiles.length;
+    
+    const direction = getDirection(state.tiles[fromIndex], state.tiles[nextIndex]);
+    
+    // Start jump
+    updateState({ 
+      facing: direction,
+      isJumping: true 
+    });
+    
+    await delay(stepDelayMs / 2);
+    
+    // Land on next tile
+    updateState({ 
+      position: nextIndex,
+      isJumping: false 
+    });
+    
+    await delay(stepDelayMs / 2);
   }
 
   updateState({
     isMoving: false,
     lastRoll: steps,
-    status: `Landed on ${state.tiles[nextIndex].label}.`,
+    status: `Landed on ${state.tiles[state.position].label}.`,
   });
 }
 

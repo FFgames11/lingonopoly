@@ -192,7 +192,7 @@ button {
 }
 
 .status-bubble {
-  top: 102px;
+  top: 114px;
   left: 50%;
   transform: translateX(-50%);
   min-width: 224px;
@@ -204,6 +204,19 @@ button {
   text-align: center;
   font-size: 0.88rem;
   color: var(--text-deep);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 400ms ease,
+    transform 400ms ease,
+    visibility 400ms;
+  pointer-events: none;
+}
+
+.status-bubble.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(4px);
 }
 
 .left-rail {
@@ -407,67 +420,54 @@ button {
 
 .player-token {
   position: absolute;
-  width: 52px;
-  height: 84px;
+  width: 128px;
+  height: 128px;
   pointer-events: none;
   transition:
-    left 230ms ease,
-    top 230ms ease;
+    left 230ms linear,
+    top 230ms linear;
   z-index: 5;
+  background-image: url('./assets/player1/p1(default).png');
+  background-size: 400% 200%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
 }
 
+/* Direction States (Idle) */
+.player-token[data-facing="SE"] { background-position: 0% 0%; }
+.player-token[data-facing="NE"] { background-position: 33.33% 0%; }
+.player-token[data-facing="NW"] { background-position: 66.66% 0%; }
+.player-token[data-facing="SW"] { background-position: 100% 0%; }
+
+/* Direction States (Jumping) */
+.player-token.is-jumping[data-facing="SE"] { background-position: 0% 100%; }
+.player-token.is-jumping[data-facing="NE"] { background-position: 33.33% 100%; }
+.player-token.is-jumping[data-facing="NW"] { background-position: 66.66% 100%; }
+.player-token.is-jumping[data-facing="SW"] { background-position: 100% 100%; }
+
 .player-token.is-travelling {
-  animation: token-bounce 260ms ease-in-out infinite;
+  /* We manage the visual jump via JavaScript/CSS class 'is-jumping' */
+}
+
+@keyframes player-hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-32px); }
+}
+
+.player-token.is-jumping {
+  animation: player-hop 260ms ease-out infinite;
 }
 
 .token-shadow {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 0;
-  height: 14px;
+  left: 32px;
+  right: 32px;
+  bottom: 12px;
+  height: 12px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.18);
   filter: blur(4px);
-}
-
-.token-body {
-  position: absolute;
-  inset: 0;
-}
-
-.token-head {
-  position: absolute;
-  left: 15px;
-  top: 12px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #ffe2c0;
-  z-index: 2;
-  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.08);
-}
-
-.token-core {
-  position: absolute;
-  left: 8px;
-  top: 28px;
-  width: 36px;
-  height: 42px;
-  border-radius: 8px 8px 10px 10px;
-  background: linear-gradient(180deg, #ff7368, #bb4139);
-  box-shadow: inset 0 -10px 0 rgba(0, 0, 0, 0.12);
-}
-
-.token-core::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: -12px;
-  width: 28px;
-  height: 18px;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  background: linear-gradient(180deg, #ff8f84, #d0514b);
+  z-index: -1;
 }
 
 .bottom-hud {
