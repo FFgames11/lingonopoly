@@ -457,7 +457,7 @@ button {
 .player-token[data-facing="SW"] { background-position: -288px 0px; }
 
 .player-token.is-jumping[data-facing="SE"] { background-position: 0px -128px; }
-.player-token.is-jumping[data-facing="NE"] { background-position: -96px -128px; }
+.player-token.is-jumping[data-facing="NE"] { background-position: -98px -128px; }
 .player-token.is-jumping[data-facing="NW"] { background-position: -192px -128px; }
 .player-token.is-jumping[data-facing="SW"] { background-position: -288px -128px; }
 

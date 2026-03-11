@@ -454,11 +454,21 @@ function renderBoard() {
     .join('');
 
   const currentTile = state.tiles[state.position];
+
+  // Custom offsets per direction to ensure visual centering on the diamond tiles
+  const facingOffsets = {
+    'SE': { x: -6, y: 0 },
+    'SW': { x: 6, y: 0 },
+    'NW': { x: 4, y: 6 },
+    'NE': { x: -6, y: 0 }
+  };
+  const offset = facingOffsets[state.facing] || { x: 0, y: 0 };
+
   const tokenMarkup = currentTile
     ? `
       <div class="player-token ${state.isJumping ? 'is-jumping' : ''}" 
            data-facing="${state.facing}"
-           style="left:${currentTile.screenX + tileWidth / 2 - 48}px;top:${currentTile.screenY + tileHeight / 2 - 112}px;z-index:${currentTile.screenY + 1};">
+           style="left:${currentTile.screenX + tileWidth / 2 - 48 + offset.x}px;top:${currentTile.screenY + tileHeight / 2 - 112 + offset.y}px;z-index:${currentTile.screenY + 1};">
         <div class="token-shadow"></div>
       </div>
     `
@@ -466,7 +476,6 @@ function renderBoard() {
 
   dom.boardPlane.innerHTML = `${tilesMarkup}${tokenMarkup}`;
 }
-
 function render() {
   renderHud();
   renderDice(state.diceFace);
