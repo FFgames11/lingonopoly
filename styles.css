@@ -343,9 +343,9 @@ button {
 
 .board-tile {
   position: absolute;
-  width: 68px;
-  height: 68px;
-  transform: translate(-6px, -6px);
+  width: 114px;
+  height: 64px;
+  transform: translate(0, 0);
   border: 0;
   isolation: isolate;
   filter: drop-shadow(0 10px 16px var(--tile-shadow, rgba(38, 54, 81, 0.24)));
@@ -358,14 +358,14 @@ button {
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   background:
     linear-gradient(180deg, var(--tile-edge), var(--tile-edge-dark));
-  transform: translateY(8px);
+  transform: translateY(10px);
   z-index: 0;
 }
 
 .board-tile::after {
   content: "";
   position: absolute;
-  inset: 0 0 8px;
+  inset: 0 0 0;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.28), transparent 26%),
@@ -378,7 +378,7 @@ button {
 
 .tile-icon {
   position: absolute;
-  inset: 0 0 8px;
+  inset: 0;
   display: grid;
   place-items: center;
   z-index: 2;
@@ -386,13 +386,13 @@ button {
 }
 
 .tile-icon-svg {
-  width: 54%;
-  height: 54%;
+  width: 42%;
+  height: 42%;
   overflow: visible;
 }
 
 .board-tile.is-current {
-  transform: translate(-6px, -10px) scale(1.04);
+  transform: translateY(-4px) scale(1.02);
   filter:
     drop-shadow(0 12px 18px var(--tile-shadow, rgba(38, 54, 81, 0.24)))
     drop-shadow(0 0 16px var(--tile-glow, rgba(255, 255, 255, 0.28)));
@@ -413,7 +413,6 @@ button {
   transition:
     left 230ms ease,
     top 230ms ease;
-  transform: translate3d(0, 0, 32px);
   z-index: 5;
 }
 

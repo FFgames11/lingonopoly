@@ -1,10 +1,10 @@
 const rollFaces = [1, 2, 3, 4, 5, 6];
 const stepDelayMs = 260;
 const diceAnimationMs = 1100;
-const tileStepX = 56.5;
-const tileStepY = 56.5;
-const originX = 214;
-const originY = 616;
+const tileWidth = 114;
+const tileHeight = 64;
+const originX = 160;
+const originY = 80;
 
 const pipLayout = {
   1: [[50, 50]],
@@ -267,12 +267,12 @@ function getPipMarkup(face, planeName, variant) {
 }
 
 function toScreenPosition(x, y) {
-  const rawX = originX + (x + y) * tileStepX;
-  const rawY = originY + (y - x) * tileStepY;
+  const isoX = (x - y) * (tileWidth / 2);
+  const isoY = (x + y) * (tileHeight / 2);
 
   return {
-    screenX: Math.round(rawX),
-    screenY: Math.floor(rawY),
+    screenX: Math.round(originX + isoX),
+    screenY: Math.round(originY + isoY),
   };
 }
 
@@ -292,6 +292,7 @@ function getTileStyle(tile) {
   return [
     `left:${tile.screenX}px`,
     `top:${tile.screenY}px`,
+    `z-index:${tile.screenY}`,
     `--tile-top:${tile.theme.top}`,
     `--tile-bottom:${tile.theme.bottom}`,
     `--tile-edge:${tile.theme.edge}`,
@@ -416,8 +417,8 @@ function renderCamera() {
   const currentTile = state.tiles[state.position];
   const stageWidth = dom.boardStage.clientWidth;
   const stageHeight = dom.boardStage.clientHeight;
-  const tileCenterX = currentTile.screenX + 28;
-  const tileCenterY = currentTile.screenY + 28;
+  const tileCenterX = currentTile.screenX + tileWidth / 2;
+  const tileCenterY = currentTile.screenY + tileHeight / 2;
   const targetX = stageWidth * 0.5;
   const targetY = stageHeight * 0.56;
   const translateX = targetX - tileCenterX;
@@ -441,7 +442,7 @@ function renderBoard() {
   const currentTile = state.tiles[state.position];
   const tokenMarkup = currentTile
     ? `
-      <div class="player-token ${state.isMoving ? 'is-travelling' : ''}" style="left:${currentTile.screenX + 6}px;top:${currentTile.screenY - 40}px;">
+      <div class="player-token ${state.isMoving ? 'is-travelling' : ''}" style="left:${currentTile.screenX + tileWidth / 2 - 26}px;top:${currentTile.screenY + tileHeight - 84}px;z-index:${currentTile.screenY + 1};">
         <div class="token-shadow"></div>
         <div class="token-body">
           <span class="token-head"></span>
