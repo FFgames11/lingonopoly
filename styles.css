@@ -529,22 +529,19 @@ button {
   display: grid;
   justify-items: center;
   gap: 8px;
-  transform: translateY(-18px);
+  transform: translateY(-10px);
 }
 
 .dice-trigger {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 152px;
+  height: 146px;
   padding: 0;
   display: inline-grid;
   place-items: center;
   border: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 24%, #ff8f84, var(--red-dice));
-  box-shadow:
-    0 16px 0 #d84942,
-    0 26px 36px rgba(222, 74, 68, 0.38);
+  background: transparent;
+  box-shadow: none;
   cursor: pointer;
   transition: transform 180ms ease, opacity 160ms ease;
 }
@@ -552,13 +549,32 @@ button {
 .dice-trigger::before {
   content: "";
   position: absolute;
-  inset: 8px;
-  border-radius: 50%;
-  border: 5px solid rgba(255, 255, 255, 0.54);
+  left: 26px;
+  right: 26px;
+  bottom: 12px;
+  height: 18px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(88, 65, 54, 0.34), rgba(88, 65, 54, 0) 72%);
+  filter: blur(4px);
+}
+
+.dice-trigger::after {
+  content: "";
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: 16px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(221, 213, 202, 0.72));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.72),
+    0 6px 14px rgba(80, 60, 51, 0.16);
+  opacity: 0.9;
 }
 
 .dice-trigger:hover:not(:disabled) {
-  transform: translateY(-4px) scale(1.03);
+  transform: translateY(-4px) scale(1.02);
 }
 
 .dice-trigger:disabled {
@@ -568,10 +584,11 @@ button {
 
 .dice-trigger-art {
   position: relative;
-  width: 110px;
-  height: 110px;
+  width: 128px;
+  height: 128px;
   display: grid;
   place-items: center;
+  z-index: 1;
 }
 
 .dice-label {
@@ -596,9 +613,9 @@ button {
 
 .dice-vector {
   position: absolute;
-  width: 92px;
-  height: 92px;
-  filter: drop-shadow(0 16px 16px rgba(148, 31, 20, 0.24));
+  width: 122px;
+  height: 122px;
+  filter: drop-shadow(0 14px 18px rgba(72, 55, 42, 0.22));
 }
 
 .dice-main {

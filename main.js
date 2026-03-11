@@ -40,6 +40,42 @@ const pipLayout = {
   ],
 };
 
+const cubeFaceMap = {
+  1: { top: 2, side: 3 },
+  2: { top: 6, side: 3 },
+  3: { top: 2, side: 6 },
+  4: { top: 2, side: 1 },
+  5: { top: 1, side: 3 },
+  6: { top: 2, side: 4 },
+};
+
+const cubePlanes = {
+  front: {
+    origin: [24, 28],
+    xAxis: [31, 0],
+    yAxis: [0, 36],
+    radius: 3.6,
+    color: '#d13f35',
+    opacity: 1,
+  },
+  top: {
+    origin: [24, 28],
+    xAxis: [31, 0],
+    yAxis: [21, -12],
+    radius: 2.5,
+    color: '#d24d43',
+    opacity: 0.95,
+  },
+  side: {
+    origin: [55, 28],
+    xAxis: [21, -12],
+    yAxis: [0, 36],
+    radius: 2.7,
+    color: '#bc3229',
+    opacity: 0.92,
+  },
+};
+
 const tileKinds = ['property', 'property', 'event', 'property', 'property', 'event'];
 const labels = [
   'Launchpad',
@@ -100,6 +136,41 @@ function getRandomFace() {
   return rollFaces[Math.floor(Math.random() * rollFaces.length)];
 }
 
+function projectPointToPlane([u, v], plane) {
+  return [
+    plane.origin[0] + plane.xAxis[0] * u + plane.yAxis[0] * v,
+    plane.origin[1] + plane.xAxis[1] * u + plane.yAxis[1] * v,
+  ];
+}
+
+function getPipMarkup(face, planeName, variant) {
+  const plane = cubePlanes[planeName];
+
+  return pipLayout[face]
+    .map(([cx, cy]) => {
+      const [projectedX, projectedY] = projectPointToPlane([cx / 100, cy / 100], plane);
+      return `
+        <circle
+          clip-path="url(#clip-${planeName}-${variant})"
+          cx="${projectedX.toFixed(2)}"
+          cy="${projectedY.toFixed(2)}"
+          fill="${plane.color}"
+          opacity="${plane.opacity}"
+          r="${plane.radius}"
+        ></circle>
+        <circle
+          clip-path="url(#clip-${planeName}-${variant})"
+          cx="${projectedX.toFixed(2)}"
+          cy="${(projectedY - 0.85).toFixed(2)}"
+          fill="#ffffff"
+          opacity="0.4"
+          r="${(plane.radius * 0.46).toFixed(2)}"
+        ></circle>
+      `;
+    })
+    .join('');
+}
+
 function toScreenPosition(x, y) {
   const rawX = originX + (x + y) * tileStepX;
   const rawY = originY + (y - x) * tileStepY;
@@ -148,29 +219,43 @@ function buildTiles() {
 }
 
 function getDiceMarkup(face, className, variant) {
-  const pips = pipLayout[face]
-    .map(([cx, cy]) => `<circle cx="${cx}" cy="${cy}" fill="#13202b" r="5.8"></circle>`)
-    .join('');
+  const orientation = cubeFaceMap[face];
 
   return `
     <svg aria-hidden="true" class="dice-vector ${className}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="diceGradient-${variant}" x1="12%" x2="90%" y1="6%" y2="100%">
-          <stop offset="0%" stop-color="#fff6dc"></stop>
-          <stop offset="58%" stop-color="#f6d57f"></stop>
-          <stop offset="100%" stop-color="#d18736"></stop>
+        <linearGradient id="frontGradient-${variant}" x1="0%" x2="100%" y1="0%" y2="100%">
+          <stop offset="0%" stop-color="#fffdfa"></stop>
+          <stop offset="56%" stop-color="#f4f1eb"></stop>
+          <stop offset="100%" stop-color="#d9d4cb"></stop>
         </linearGradient>
-        <linearGradient id="edgeGradient-${variant}" x1="50%" x2="50%" y1="0%" y2="100%">
-          <stop offset="0%" stop-color="#ffd99b"></stop>
-          <stop offset="100%" stop-color="#8c4a1e"></stop>
+        <linearGradient id="topGradient-${variant}" x1="0%" x2="100%" y1="0%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff"></stop>
+          <stop offset="100%" stop-color="#ece6dc"></stop>
         </linearGradient>
+        <linearGradient id="sideGradient-${variant}" x1="0%" x2="100%" y1="0%" y2="100%">
+          <stop offset="0%" stop-color="#dad3c9"></stop>
+          <stop offset="100%" stop-color="#b8afa4"></stop>
+        </linearGradient>
+        <clipPath id="clip-front-${variant}">
+          <rect x="24" y="28" width="31" height="36" rx="7"></rect>
+        </clipPath>
+        <clipPath id="clip-top-${variant}">
+          <path d="M24 28L55 28L76 16L45 16Z"></path>
+        </clipPath>
+        <clipPath id="clip-side-${variant}">
+          <path d="M55 28L76 16L76 52L55 64Z"></path>
+        </clipPath>
       </defs>
-      <path d="M22 22L50 10L78 22L78 50L50 62L22 50Z" fill="url(#diceGradient-${variant})" stroke="#fce8b7" stroke-width="3"></path>
-      <path d="M22 50L50 62L50 88L22 74Z" fill="url(#edgeGradient-${variant})" opacity="0.92"></path>
-      <path d="M50 62L78 50L78 74L50 88Z" fill="#9d5625" opacity="0.94"></path>
-      <rect x="26" y="26" width="48" height="48" rx="12" fill="#fff9eb"></rect>
-      ${pips}
-      <path d="M27 34C34 27 43 22 58 20" fill="none" opacity="0.65" stroke="#ffffff" stroke-linecap="round" stroke-width="4"></path>
+      <ellipse cx="48" cy="79" fill="rgba(40, 25, 18, 0.18)" rx="26" ry="8"></ellipse>
+      <path d="M24 28L55 28L76 16L45 16Z" fill="url(#topGradient-${variant})" stroke="#d8d1c8" stroke-width="1.5"></path>
+      <path d="M55 28L76 16L76 52L55 64Z" fill="url(#sideGradient-${variant})" stroke="#b1a89d" stroke-width="1.5"></path>
+      <rect x="24" y="28" width="31" height="36" rx="7" fill="url(#frontGradient-${variant})" stroke="#d7d1c8" stroke-width="1.5"></rect>
+      ${getPipMarkup(orientation.top, 'top', variant)}
+      ${getPipMarkup(orientation.side, 'side', variant)}
+      ${getPipMarkup(face, 'front', variant)}
+      <path d="M29 23C35 19 42 17 51 17" fill="none" opacity="0.82" stroke="#ffffff" stroke-linecap="round" stroke-width="4"></path>
+      <path d="M30 33C34 30 40 29 47 29" fill="none" opacity="0.35" stroke="#ffffff" stroke-linecap="round" stroke-width="3"></path>
     </svg>
   `;
 }

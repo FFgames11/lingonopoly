@@ -134,7 +134,7 @@ Tracked fields:
 - Bright pastel background gradients
 - Floating white HUD panels with soft shadows
 - Isometric rounded-corner board tiles with an inset panel, soft texture, and slight volume
-- Centerpiece red dice button with arcade-style motion
+- Centerpiece 3D dice cube button with arcade-style motion
 - Cartoon token with simple layered body parts
 - Decorative game-economy style labels such as `Mayor`, `Lv. 2`, `Tile`, and `Mode`
 
@@ -181,6 +181,7 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 ### 2026-03-11
 - Restored the larger stylized board tile treatment with rounded corners, inset borders, light texture, and extra depth.
 - Kept the existing board coordinate system, tile arrangement, and token alignment unchanged while updating the tile visuals.
+- Reworked the roll control so it renders as a 3D dice cube with visible cube faces and pip details.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:
