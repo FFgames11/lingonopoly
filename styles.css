@@ -35,7 +35,7 @@ button {
 
 .game-screen {
   position: relative;
-  width: min(100vw, 430px);
+  width: min(100vw, 470px);
   min-height: 100vh;
   overflow: hidden;
   background:
