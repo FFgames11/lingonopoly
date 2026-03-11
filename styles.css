@@ -473,7 +473,7 @@ button {
 }
 
 .player-token.is-jumping[data-facing="SW"] {
-  background-position: -372px -176px;
+  background-position: -362px -176px;
 }
 
 .player-token.is-travelling {
