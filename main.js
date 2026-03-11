@@ -419,7 +419,7 @@ function renderCamera() {
   const tileCenterX = currentTile.screenX + 28;
   const tileCenterY = currentTile.screenY + 28;
   const targetX = stageWidth * 0.5;
-  const targetY = stageHeight * 0.56;
+  const targetY = stageHeight * 0.6;
   const translateX = targetX - tileCenterX;
   const translateY = targetY - tileCenterY;
 
@@ -451,7 +451,10 @@ function renderBoard() {
     `
     : '';
 
-  dom.boardPlane.innerHTML = `${tilesMarkup}${tokenMarkup}`;
+  dom.boardPlane.innerHTML = `
+    <div class="board-tiles-layer">${tilesMarkup}</div>
+    <div class="board-token-layer">${tokenMarkup}</div>
+  `;
 }
 
 function render() {

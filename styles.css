@@ -341,11 +341,23 @@ button {
   transition: transform 260ms ease;
 }
 
+.board-tiles-layer,
+.board-token-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.board-tiles-layer {
+  transform-origin: 50% 72%;
+  transform: translateY(28px) rotateX(18deg) translateZ(-6px);
+  transform-style: preserve-3d;
+}
+
 .board-tile {
   position: absolute;
   width: 68px;
   height: 68px;
-  transform: translate(-6px, -6px);
+  transform: translate(-6px, -6px) translateZ(12px);
   border: 0;
   isolation: isolate;
   filter: drop-shadow(0 10px 16px var(--tile-shadow, rgba(38, 54, 81, 0.24)));
@@ -392,7 +404,7 @@ button {
 }
 
 .board-tile.is-current {
-  transform: translate(-6px, -10px) scale(1.04);
+  transform: translate(-6px, -10px) translateZ(18px) scale(1.04);
   filter:
     drop-shadow(0 12px 18px var(--tile-shadow, rgba(38, 54, 81, 0.24)))
     drop-shadow(0 0 16px var(--tile-glow, rgba(255, 255, 255, 0.28)));
