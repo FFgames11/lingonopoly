@@ -500,7 +500,7 @@ async function handleRoll() {
 
   diceIntervalId = window.setInterval(() => {
     updateState({ diceFace: getRandomFace() });
-  }, 90);
+  }, 60);
 
   await delay(diceAnimationMs);
 
