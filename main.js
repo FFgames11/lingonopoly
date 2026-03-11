@@ -457,10 +457,10 @@ function renderBoard() {
 
   // Custom offsets per direction to ensure visual centering on the diamond tiles
   const facingOffsets = {
-    'SE': { x: -6, y: 0 },
-    'SW': { x: 6, y: 0 },
-    'NW': { x: 4, y: 6 },
-    'NE': { x: -6, y: 0 }
+    'SE': { x: -14, y: 2 },
+    'SW': { x: 14, y: 2 },
+    'NW': { x: 10, y: 8 },
+    'NE': { x: -10, y: 8 }
   };
   const offset = facingOffsets[state.facing] || { x: 0, y: 0 };
 
