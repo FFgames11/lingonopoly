@@ -421,10 +421,10 @@ button {
 .player-token {
   position: absolute;
   /* 
-     Sheet: 2554 x 1702
-     Grid: 4 cols x 2 rows
-     Frame: 638.5 x 851
-     Scale factor: 0.15 (to fit board) -> ~96 x 128
+     Frame: 96px x 128px
+     Scale character up: 120px x 160px (25% increase)
+     Sheet (4x2): 480px x 320px
+     Centering offset: X: (120-96)/2 = 12px, Y: (160-128)/2 = 16px
   */
   width: 96px;
   height: 128px;
@@ -435,31 +435,25 @@ button {
   z-index: 5;
   background-image: url('./assets/player1/p1(default).png');
   background-repeat: no-repeat;
-  /* 
-     Sheet is 2554x1702. 4 cols x 2 rows.
-     One frame is 638.5 x 851.
-     We want width 96px. 
-     Ratio is 0.75. height should be 128px.
-     Background-size should be 96*4 = 384 and 128*2 = 256.
-  */
-  background-size: 384px 256px;
+  background-size: 480px 320px;
   image-rendering: pixelated;
 }
 
 /* 
-   Calculate exact pixel offsets to avoid floating point bleeding.
-   Col width = 384/4 = 96px
-   Row height = 256/2 = 128px
+   Direction States (Idle) - Row 1
 */
-.player-token[data-facing="SE"] { background-position: 0px 0px; }
-.player-token[data-facing="NE"] { background-position: -96px 0px; }
-.player-token[data-facing="NW"] { background-position: -192px 0px; }
-.player-token[data-facing="SW"] { background-position: -288px 0px; }
+.player-token[data-facing="SE"] { background-position: -12px -16px; }
+.player-token[data-facing="NE"] { background-position: -132px -16px; }
+.player-token[data-facing="NW"] { background-position: -252px -16px; }
+.player-token[data-facing="SW"] { background-position: -372px -16px; }
 
-.player-token.is-jumping[data-facing="SE"] { background-position: 0px -128px; }
-.player-token.is-jumping[data-facing="NE"] { background-position: -98px -128px; }
-.player-token.is-jumping[data-facing="NW"] { background-position: -192px -128px; }
-.player-token.is-jumping[data-facing="SW"] { background-position: -288px -128px; }
+/* 
+   Direction States (Jumping) - Row 2
+*/
+.player-token.is-jumping[data-facing="SE"] { background-position: -12px -176px; }
+.player-token.is-jumping[data-facing="NE"] { background-position: -132px -176px; }
+.player-token.is-jumping[data-facing="NW"] { background-position: -252px -176px; }
+.player-token.is-jumping[data-facing="SW"] { background-position: -372px -176px; }
 
 .player-token.is-travelling {
   /* We manage the visual jump via JavaScript/CSS class 'is-jumping' */
