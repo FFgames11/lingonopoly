@@ -6,7 +6,7 @@ This project is a lightweight static browser game prototype for a Monopoly-inspi
 This file is intended as a fast onboarding reference for other AI models and contributors. It summarizes what the system currently does, how it is structured, and what visible modifications exist in the codebase right now.
 
 ## Important Constraint
-There is no git history available in this folder at the time of writing. Because of that, the changelog below is a reconstructed snapshot of the current system state, not a verified historical commit log. Future changes should append real dated entries to make this file progressively more reliable.
+Git history is available in this folder. The changelog below still includes a reconstructed snapshot for the current observed system state, but future changes should append real dated entries and keep them aligned with committed repository history.
 
 ## Product Summary
 - Product name in UI metadata: `Wordopoly`
@@ -174,9 +174,23 @@ This section reflects the observable state of the codebase as of March 11, 2026.
   - CSS for presentation
   - JavaScript for state and rendering
 - If new mechanics are added, update this file in the same change.
-- If real version control becomes available, replace reconstructed entries with commit-backed changelog notes.
+- Keep reconstructed notes synchronized with actual git commits and replace them with commit-backed changelog notes where possible.
 - When adding new UI controls, state clearly whether they are decorative or functional.
 - If board logic becomes more complex, move hardcoded board content into structured data rather than expanding inline arrays further.
+
+## Required Git Workflow After Every Change
+Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:
+
+```powershell
+git status --short
+git add -A
+git commit -m "Describe the change"
+git push origin main
+```
+
+- Push the update immediately after applying it. Do not leave completed code or documentation edits unpushed unless the user explicitly asks for local-only changes.
+- If `git push origin main` is rejected because the remote moved first, run `git pull --rebase origin main`, resolve any conflicts, and then run `git push origin main` again.
+- Update this `guidelines.md` file in the same commit whenever project behavior, architecture, or workflow expectations change, and push that commit immediately after it is created.
 
 ## Suggested Changelog Format For Future Entries
 Use this format for all new entries:
