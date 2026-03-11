@@ -1,7 +1,7 @@
 # System Guidelines
 
 ## Purpose
-This project is a lightweight static browser game prototype for a Monopoly-inspired word board experience. The current implementation presents a mobile-first "Wordopoly" board screen with a stylized HUD, animated dice, a single player token, and step-by-step movement around a looping tile ring.
+This project is a lightweight static browser game prototype for a Monopoly-inspired word board experience. The current implementation presents a mobile-first "Lingonopoly" board screen with a stylized HUD, animated dice, a single player token, and step-by-step movement around a looping tile ring.
 
 This file is intended as a fast onboarding reference for other AI models and contributors. It summarizes what the system currently does, how it is structured, and what visible modifications exist in the codebase right now.
 
@@ -9,7 +9,7 @@ This file is intended as a fast onboarding reference for other AI models and con
 Git history is available in this folder. The changelog below still includes a reconstructed snapshot for the current observed system state, but future changes should append real dated entries and keep them aligned with committed repository history.
 
 ## Product Summary
-- Product name in UI metadata: `Wordopoly`
+- Product name in UI metadata: `Lingonopoly`
 - App type: static HTML/CSS/JavaScript prototype
 - Runtime model: client-side only, no backend, no build step, no persistence
 - Primary interaction: press the dice button to roll, animate the dice, and move the player token around the board
@@ -153,7 +153,7 @@ Tracked fields:
 ### Baseline Snapshot - 2026-03-11
 This section reflects the observable state of the codebase as of March 11, 2026.
 
-- Established a one-page static `Wordopoly` prototype in `index.html`, `main.js`, and `styles.css`.
+- Established a one-page static `Lingonopoly` prototype in `index.html`, `main.js`, and `styles.css`.
 - Added a mobile-game HUD layout with top profile panel, side action rails, status bubble, and bottom navigation dock.
 - Implemented dynamic 24-tile perimeter board generation using a 7x7 ring coordinate model.
 - Added isometric screen projection logic so board tiles appear diagonally placed rather than flat-grid aligned.
