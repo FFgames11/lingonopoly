@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wordopoly</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-screen">
+        <header class="top-hud">
+          <button class="top-icon top-menu" type="button" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+          <div class="profile-card">
+            <div class="avatar-medallion">
+              <span class="avatar-core">W</span>
+            </div>
+            <div class="profile-meta">
+              <strong>Mayor</strong>
+              <span>Lv. 2</span>
+            </div>
+          </div>
+
+          <div class="resource-ribbon">
+            <div class="resource-pill">
+              <span class="resource-icon gem"></span>
+              <div class="resource-copy">
+                <span>Tile</span>
+                <strong data-role="progress-label">0 / 0</strong>
+              </div>
+            </div>
+            <div class="resource-pill">
+              <span class="resource-icon coin"></span>
+              <div class="resource-copy">
+                <span>Mode</span>
+                <strong data-role="board-mode">solo</strong>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <p class="status-bubble" data-role="status">Loading board...</p>
+
+        <aside class="left-rail">
+          <div class="mini-panel pink">
+            <span class="mini-icon">R</span>
+            <div class="mini-copy">
+              <span>Roll</span>
+              <strong data-role="last-roll">-</strong>
+            </div>
+          </div>
+          <div class="mini-panel gold">
+            <span class="mini-icon">P</span>
+            <div class="mini-copy">
+              <span>Pawn</span>
+              <strong>Ready</strong>
+            </div>
+          </div>
+        </aside>
+
+        <aside class="right-rail">
+          <button class="action-orb orange" type="button" aria-label="Daily rewards">
+            <span class="orb-glyph">G</span>
+            <span class="orb-label">Gift</span>
+          </button>
+          <button class="action-orb blue" type="button" aria-label="VIP">
+            <span class="orb-glyph">V</span>
+            <span class="orb-label">VIP</span>
+          </button>
+          <button class="action-orb pink" type="button" aria-label="Events">
+            <span class="orb-glyph">E</span>
+            <span class="orb-label">Event</span>
+          </button>
+        </aside>
+
+        <section class="board-stage" aria-label="Wordopoly board" data-role="board-stage">
+          <div class="camera-rig">
+            <div class="board-plane" data-role="board-plane"></div>
+          </div>
+        </section>
+
+        <footer class="bottom-hud">
+          <div class="dock-side">
+            <button class="nav-orb mint" type="button" aria-label="Map">
+              <span class="orb-glyph">M</span>
+              <span class="orb-label">Map</span>
+            </button>
+            <button class="nav-orb peach" type="button" aria-label="Cards">
+              <span class="orb-glyph">C</span>
+              <span class="orb-label">Cards</span>
+            </button>
+          </div>
+
+          <div class="dice-dock">
+            <button aria-label="Roll dice" class="dice-trigger" data-role="roll-trigger" type="button">
+              <span class="sr-only">Roll dice</span>
+              <span class="dice-trigger-art" aria-hidden="true" data-role="dice-art"></span>
+            </button>
+            <p class="dice-label">Tap to roll</p>
+          </div>
+
+          <div class="dock-side dock-side-right">
+            <button class="nav-orb lime" type="button" aria-label="Tasks">
+              <span class="orb-glyph">T</span>
+              <span class="orb-label">Tasks</span>
+            </button>
+            <button class="nav-orb violet" type="button" aria-label="Shop">
+              <span class="orb-glyph">S</span>
+              <span class="orb-label">Shop</span>
+            </button>
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <script src="./main.js"></script>
+  </body>
+</html>
