@@ -458,7 +458,7 @@ function renderBoard() {
     ? `
       <div class="player-token ${state.isJumping ? 'is-jumping' : ''}" 
            data-facing="${state.facing}"
-           style="left:${currentTile.screenX + tileWidth / 2 - 48 + 5}px;top:${currentTile.screenY + tileHeight / 2 - 128 + 15}px;z-index:${currentTile.screenY + 1};">
+           style="left:${currentTile.screenX + tileWidth / 2 - 48}px;top:${currentTile.screenY + tileHeight / 2 - 112}px;z-index:${currentTile.screenY + 1};">
         <div class="token-shadow"></div>
       </div>
     `
