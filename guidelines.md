@@ -11,8 +11,8 @@ Git history is available in this folder. The changelog below still includes a re
 ## Product Summary
 - Product name in UI metadata: `English Town`
 - App type: static HTML/CSS/JavaScript prototype
-- Runtime model: client-side only, no backend, no build step, no persistence
-- Primary interaction: press the dice button to roll, animate the dice, and move the player token around the board
+- Runtime model: client-side only, no backend, no build step, with browser-local persistence via `localStorage`
+- Primary interaction: press the dice button to roll, animate the dice, move the player token around the board, collect fixed coins per tile moved, and land on either regular or special tiles
 - Design direction: mobile game / casual board game interface with bright gradients, floating HUD elements, and a fixed isometric board presentation
 
 ## Core Features
@@ -46,11 +46,25 @@ Git history is available in this folder. The changelog below still includes a re
 ### 3. Tile types and labels
 - Tile kinds currently supported:
   - `start`
-  - `property`
-  - `event`
-- Tile labels are predefined in a `labels` array.
-- The first tile is always the `start` tile.
-- Remaining tiles rotate through the repeating `tileKinds` pattern.
+  - `regular`
+  - `special`
+- The first tile is always the `start` tile (`Launchpad`).
+- Regular tiles are generic safe spaces with no challenge effect and no icon markup.
+- Special tiles use names from the `specialTileLabels` pool, such as `Syntax Street`, `Prompt Pier`, or `Final Frame`.
+- Each page load randomizes the special tile layout:
+  - at least `4` special tiles
+  - at most `6` special tiles
+  - random non-start positions on the 24-tile ring
+- Refreshing the page keeps player progress but rerolls which positions are special.
+
+### 3.5. Coin rewards and tile outcomes
+- Every movement step grants a fixed coin reward, currently `38` coins per tile moved.
+- Coin rewards do not depend on tile type; they are awarded for movement itself.
+- Landing outcomes:
+  - `regular` tile: no extra effect, player can roll again
+  - `special` tile: placeholder language-learning challenge status only for now
+  - `start` tile: no special challenge, just a landing/update message
+- Because coin rewards are step-based, a roll of `N` grants `N * 38` coins total by the time movement completes.
 
 ### 4. Dice system
 - Dice faces are limited to standard values `1` through `6`.
@@ -143,15 +157,16 @@ Git history is available in this folder. The changelog below still includes a re
 
 ## Current Behavioral Flow
 1. `bootstrap()` builds the tile list and sets the initial status.
-2. The first render shows the board, HUD, dice, and token on tile 0.
-3. The first render also shows the dice inventory meter and any currently active free-dice claim button.
-4. User clicks the dice button.
-5. `handleRoll()` spends one usable die, enters rolling state, and animates the dice for `1100ms`.
-6. A final random face is chosen.
-7. `moveToken()` advances the token step by step with `260ms` delays.
-8. On each step, the character sprite rotates toward the next tile, jumps, then lands onto the next board position.
-9. HUD updates with last roll, remaining dice count, and final landing tile label.
-10. If no usable dice remain, the roll button stays disabled until dice are added again.
+2. `bootstrap()` also loads any persisted progress from `localStorage`.
+3. The first render shows the board, HUD, dice, token, current coin total, and any currently active free-dice claim button.
+4. Special tile positions are regenerated for the current page load, even if player progress was restored.
+5. User clicks the dice button.
+6. `handleRoll()` spends one usable die, enters rolling state, and animates the dice for `1100ms`.
+7. A final random face is chosen.
+8. `moveToken()` advances the token step by step with `260ms` delays.
+9. On each step, the character sprite rotates toward the next tile, jumps, lands, and adds `38` coins to the saved total.
+10. When movement ends, the landing message depends on whether the destination is a `regular`, `special`, or `start` tile.
+11. If no usable dice remain, the roll button stays disabled until dice are added again.
 
 ## State Model
 The current runtime state is stored in a single `state` object in `main.js`.
@@ -163,6 +178,7 @@ Tracked fields:
 - `diceCount`: current usable dice remaining for rolls
 - `diceMax`: current cap used by the meter display and fill bar
 - `overflowDice`: reward-earned excess dice shown as `+N` inside the meter label
+- `coins`: accumulated movement rewards shown in the HUD
 - `lastRoll`: most recent completed roll
 - `status`: status text shown in the HUD bubble
 - `boardMode`: currently hardcoded to `solo`
@@ -177,22 +193,25 @@ Tracked fields:
 ### `index.html`
 - Declares the app shell and all static UI containers.
 - Provides `data-role` hooks for JavaScript rendering.
+- Contains the coin counter pill in the top HUD.
 - Contains the dice meter DOM, bonus dice label, store `+` button, and the free-dice claim button shell.
 - Loads `styles.css` and `main.js`.
 
 ### `main.js`
 - Owns all game logic.
 - Generates tiles and positions.
+- Randomizes which non-start tiles are special for the current page load.
 - Defines the isometric projection from logical board coordinates into screen space.
 - Builds dynamic SVG dice markup.
 - Renders board, token sprite, dice, HUD, and camera movement.
-- Handles dice inventory, free-dice claim sequencing, roll interaction, and movement sequencing.
+- Persists player progress such as position, coins, and dice inventory in `localStorage`.
+- Handles dice inventory, coin rewards, free-dice claim sequencing, roll interaction, and movement sequencing.
 
 ### `styles.css`
 - Defines the entire visual identity of the prototype.
 - Uses gradients, shadows, pseudo-elements, and animations extensively.
 - Owns the token sprite presentation, directional pose treatment, and jump motion.
-- Styles the dice meter, bonus counter, placeholder store button, and animated free-dice event button.
+- Styles the dice meter, coin HUD pill, placeholder store button, and animated free-dice event button.
 - Contains responsive adjustments for narrower screens.
 
 ## UX / Visual Characteristics
@@ -201,15 +220,17 @@ Tracked fields:
 - Floating white HUD panels with soft shadows
 - Fixed isometric viewpoint with rounded-corner board tiles that use inset panels, soft texture, and slight volume
 - Centerpiece 3D dice cube button with arcade-style motion
+- A persistent top-HUD coin counter that increases by a fixed amount per tile moved
 - A blue-filled dice meter and a floating event-style free-dice claim badge near the dice dock
 - Cartoon token with simple layered body parts
 - Decorative game-economy style labels such as `Mayor`, `Lv. 2`, `Tile`, and `Mode`
 
 ## Known Limitations
 - No multiplayer
-- No save/load system
-- No score, money, ownership, rent, or card mechanics
+- No backend or cross-device save system; persistence is local to the current browser via `localStorage`
+- No ownership, rent, spending, or card mechanics beyond passive coin accumulation
 - No event handling for non-dice buttons
+- Special tiles only show placeholder challenge messaging right now; no actual language-learning challenge logic exists yet
 - The store `+` button beside the dice meter is UI-only for now; real-money purchase flow is not implemented
 - The free-dice condition system is only scaffolded with a single sample condition and no real gameplay triggers yet
 - No board data externalization; content is hardcoded in JavaScript
@@ -259,6 +280,8 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 - Added a sample free-dice event button with a one-time claim flow that can generate overflow dice above the `15` cap.
 - Tightened the dice dock layout so the meter and store button sit as one centered row, lifted the whole dice cluster above the bottom nav, and moved the free-dice badge farther up-left from the main roll button.
 - Widened the dice meter label area so overflow rewards such as `15/15 +2` remain visible inside the meter instead of being clipped.
+- Added fixed `38`-coin rewards per movement step, a saved coin counter, and browser-local persistence for player progress.
+- Reworked the board so only `4` to `6` tiles are special on each load, while special positions reroll on refresh without resetting the saved player position or resources.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:

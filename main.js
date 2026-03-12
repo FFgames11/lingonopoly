@@ -2,6 +2,10 @@ const rollFaces = [1, 2, 3, 4, 5, 6];
 const stepDelayMs = 260;
 const diceAnimationMs = 1100;
 const defaultDiceCount = 15;
+const coinRewardPerStep = 38;
+const persistedStateKey = 'english-town-state-v3';
+const minSpecialTilesPerBoard = 4;
+const maxSpecialTilesPerBoard = 6;
 const tileWidth = 114;
 const tileHeight = 64;
 const originX = 160;
@@ -84,9 +88,8 @@ const cubePlanes = {
   },
 };
 
-const tileKinds = ['property', 'property', 'event', 'property', 'property', 'event'];
-const labels = [
-  'Launchpad',
+const startTileLabel = 'Launchpad';
+const specialTileLabels = [
   'Syntax Street',
   'Lucky Draw',
   'Letter Lane',
@@ -196,9 +199,27 @@ const tileThemes = {
       </svg>
     `,
   },
+  regularMint: {
+    top: '#dcf5e7',
+    bottom: '#b8e0ca',
+    edge: '#93c7af',
+    edgeDark: '#78aa92',
+    shadow: 'rgba(69, 124, 99, 0.16)',
+    glow: 'rgba(205, 242, 223, 0.12)',
+    icon: '',
+  },
+  regularStone: {
+    top: '#edf1f7',
+    bottom: '#d9dfeb',
+    edge: '#bcc7d8',
+    edgeDark: '#99a7bb',
+    shadow: 'rgba(82, 94, 121, 0.16)',
+    glow: 'rgba(226, 233, 243, 0.12)',
+    icon: '',
+  },
 };
 
-const tileThemeSequence = [
+const challengeTileThemeSequence = [
   tileThemes.orangeHome,
   tileThemes.pinkPlay,
   tileThemes.blueSpark,
@@ -206,6 +227,8 @@ const tileThemeSequence = [
   tileThemes.slateBars,
   tileThemes.periwinkleMark,
 ];
+const regularTileThemes = [tileThemes.regularMint, tileThemes.regularStone];
+const persistedStateFields = ['tiles', 'position', 'diceCount', 'diceMax', 'overflowDice', 'coins', 'lastRoll', 'activeFreeDiceOfferId'];
 
 const state = {
   tiles: [],
@@ -214,6 +237,7 @@ const state = {
   diceCount: defaultDiceCount,
   diceMax: defaultDiceCount,
   overflowDice: 0,
+  coins: 0,
   lastRoll: null,
   status: 'Loading board...',
   boardMode: 'solo',
@@ -241,6 +265,7 @@ function getDirection(from, to) {
 const dom = {
   status: document.querySelector('[data-role="status"]'),
   progressLabel: document.querySelector('[data-role="progress-label"]'),
+  coinCount: document.querySelector('[data-role="coin-count"]'),
   lastRoll: document.querySelector('[data-role="last-roll"]'),
   boardMode: document.querySelector('[data-role="board-mode"]'),
   rollTrigger: document.querySelector('[data-role="roll-trigger"]'),
@@ -263,6 +288,108 @@ function delay(ms) {
 
 function getRandomFace() {
   return rollFaces[Math.floor(Math.random() * rollFaces.length)];
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function shuffleArray(items) {
+  const nextItems = [...items];
+
+  for (let index = nextItems.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [nextItems[index], nextItems[swapIndex]] = [nextItems[swapIndex], nextItems[index]];
+  }
+
+  return nextItems;
+}
+
+function clampInteger(value, minimum, maximum) {
+  if (!Number.isFinite(value)) {
+    return minimum;
+  }
+
+  const nextValue = Math.trunc(value);
+  return Math.min(Math.max(nextValue, minimum), maximum);
+}
+
+function buildSpecialTileAssignments(tileCount) {
+  const shuffledPositions = shuffleArray(Array.from({ length: tileCount - 1 }, (_, index) => index + 1));
+  const shuffledLabels = shuffleArray(specialTileLabels);
+  const specialTileCount = getRandomInt(minSpecialTilesPerBoard, Math.min(maxSpecialTilesPerBoard, tileCount - 1));
+  const assignments = new Map();
+
+  shuffledPositions.slice(0, specialTileCount).forEach((position, index) => {
+    assignments.set(position, {
+      label: shuffledLabels[index],
+      theme: challengeTileThemeSequence[index % challengeTileThemeSequence.length],
+    });
+  });
+
+  return assignments;
+}
+
+function getRegularTileTheme(index) {
+  return regularTileThemes[index % regularTileThemes.length];
+}
+
+function getPersistedSnapshot() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(persistedStateKey);
+    return rawValue ? JSON.parse(rawValue) : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizePersistedSnapshot(snapshot, tileCount) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    return null;
+  }
+
+  const normalizedOfferId =
+    snapshot.activeFreeDiceOfferId === null
+      ? null
+      : freeDiceOffers.some((offer) => offer.id === snapshot.activeFreeDiceOfferId)
+        ? snapshot.activeFreeDiceOfferId
+        : freeDiceOffers[0]?.id ?? null;
+
+  return {
+    position: clampInteger(snapshot.position ?? 0, 0, Math.max(tileCount - 1, 0)),
+    diceCount: clampInteger(snapshot.diceCount ?? defaultDiceCount, 0, defaultDiceCount),
+    diceMax: defaultDiceCount,
+    overflowDice: Math.max(0, Math.trunc(snapshot.overflowDice ?? 0)),
+    coins: Math.max(0, Math.trunc(snapshot.coins ?? 0)),
+    lastRoll: rollFaces.includes(snapshot.lastRoll) ? snapshot.lastRoll : null,
+    activeFreeDiceOfferId: normalizedOfferId,
+  };
+}
+
+function persistStateSnapshot() {
+  if (typeof window === 'undefined' || !window.localStorage || !state.tiles.length) {
+    return;
+  }
+
+  const snapshot = {
+    position: state.position,
+    diceCount: state.diceCount,
+    diceMax: state.diceMax,
+    overflowDice: state.overflowDice,
+    coins: state.coins,
+    lastRoll: state.lastRoll,
+    activeFreeDiceOfferId: state.activeFreeDiceOfferId,
+  };
+
+  try {
+    window.localStorage.setItem(persistedStateKey, JSON.stringify(snapshot));
+  } catch {
+    // Ignore storage write failures and keep the session running.
+  }
 }
 
 function getActiveFreeDiceOffer() {
@@ -326,18 +453,6 @@ function toScreenPosition(x, y) {
   };
 }
 
-function getTileTheme(index, kind) {
-  if (kind === 'start') {
-    return tileThemes.orangeHome;
-  }
-
-  if (kind === 'event') {
-    return index % 4 === 0 ? tileThemes.goldCheck : tileThemes.blueSpark;
-  }
-
-  return tileThemeSequence[(index + 1) % tileThemeSequence.length];
-}
-
 function getTileStyle(tile) {
   return [
     `left:${tile.screenX}px`,
@@ -376,14 +491,21 @@ function buildRingCoordinates(size) {
 }
 
 function buildTiles() {
-  return buildRingCoordinates(7).map((coord, index) => {
-    const kind = index === 0 ? 'start' : tileKinds[(index - 1) % tileKinds.length];
-    const theme = getTileTheme(index, kind);
+  const coordinates = buildRingCoordinates(7);
+  const specialTileAssignments = buildSpecialTileAssignments(coordinates.length);
+
+  return coordinates.map((coord, index) => {
+    const specialTile = specialTileAssignments.get(index);
+    const kind = index === 0 ? 'start' : specialTile ? 'special' : 'regular';
+    const theme = index === 0 ? tileThemes.orangeHome : specialTile ? specialTile.theme : getRegularTileTheme(index);
+    const label = index === 0 ? startTileLabel : specialTile ? specialTile.label : `Regular Tile ${index}`;
+
     return {
       id: `tile-${index}`,
-      label: labels[index] || `Tile ${index + 1}`,
+      label,
       kind,
       theme,
+      icon: theme.icon,
       gridX: coord.x,
       gridY: coord.y,
       ...toScreenPosition(coord.x, coord.y),
@@ -445,12 +567,39 @@ function renderDice(face) {
   `;
 }
 
+function getLandingStatus(tile, coinsEarned) {
+  const coinCopy = `+${coinsEarned} coins.`;
+
+  if (tile.kind === 'special') {
+    return `Landed on ${tile.label}. ${coinCopy} Language challenge coming soon.`;
+  }
+
+  if (tile.kind === 'start') {
+    return `Back at ${tile.label}. ${coinCopy} Roll again when ready.`;
+  }
+
+  return `Landed on a regular tile. ${coinCopy} Roll again when ready.`;
+}
+
+function getResumeStatus(tile) {
+  if (tile.kind === 'special') {
+    return `Welcome back. You are on ${tile.label}. Special tiles refreshed.`;
+  }
+
+  if (tile.kind === 'start') {
+    return `Welcome back. You are at ${tile.label}. Special tiles refreshed.`;
+  }
+
+  return 'Welcome back. You are on a regular tile. Special tiles refreshed.';
+}
+
 function renderHud() {
   const canRoll = canRollDice();
   const activeFreeDiceOffer = getActiveFreeDiceOffer();
 
   dom.status.textContent = state.status;
   dom.progressLabel.textContent = state.tiles.length ? `${state.position + 1} / ${state.tiles.length}` : '0 / 0';
+  dom.coinCount.textContent = state.coins.toLocaleString();
   dom.lastRoll.textContent = state.lastRoll === null ? '-' : String(state.lastRoll);
   dom.boardMode.textContent = state.boardMode;
   dom.diceCount.textContent = `${state.diceCount}/${state.diceMax}`;
@@ -509,9 +658,10 @@ function renderBoard() {
   const tilesMarkup = state.tiles
     .map((tile, index) => {
       const currentClass = index === state.position ? 'is-current' : '';
+      const iconMarkup = tile.icon ? `<span class="tile-icon" aria-hidden="true">${tile.icon}</span>` : '';
       return `
         <article class="board-tile tile-${tile.kind} ${currentClass}" aria-label="${tile.label}" style="${getTileStyle(tile)}">
-          <span class="tile-icon" aria-hidden="true">${tile.theme.icon}</span>
+          ${iconMarkup}
         </article>
       `;
     })
@@ -564,6 +714,10 @@ function updateState(partialState) {
   }
 
   render();
+
+  if (Object.keys(partialState).some((key) => persistedStateFields.includes(key))) {
+    persistStateSnapshot();
+  }
 }
 
 async function moveToken(steps) {
@@ -589,16 +743,19 @@ async function moveToken(steps) {
     // Land on next tile
     updateState({ 
       position: nextIndex,
-      isJumping: false 
+      isJumping: false,
+      coins: state.coins + coinRewardPerStep,
     });
     
     await delay(stepDelayMs / 2);
   }
 
+  const landedTile = state.tiles[state.position];
+
   updateState({
     isMoving: false,
     lastRoll: steps,
-    status: `Landed on ${state.tiles[state.position].label}.`,
+    status: getLandingStatus(landedTile, steps * coinRewardPerStep),
   });
 }
 
@@ -643,9 +800,24 @@ async function handleRoll() {
 }
 
 function bootstrap() {
+  const tiles = buildTiles();
+  const persistedSnapshot = normalizePersistedSnapshot(getPersistedSnapshot(), tiles.length);
+  const nextPosition = persistedSnapshot?.position ?? 0;
+  const currentTile = tiles[nextPosition];
+
   updateState({
-    tiles: buildTiles(),
-    status: 'Tap the dice to start your next move.',
+    tiles,
+    position: nextPosition,
+    diceCount: persistedSnapshot?.diceCount ?? defaultDiceCount,
+    diceMax: defaultDiceCount,
+    overflowDice: persistedSnapshot?.overflowDice ?? 0,
+    coins: persistedSnapshot?.coins ?? 0,
+    lastRoll: persistedSnapshot?.lastRoll ?? null,
+    activeFreeDiceOfferId: persistedSnapshot?.activeFreeDiceOfferId ?? freeDiceOffers[0]?.id ?? null,
+    isRolling: false,
+    isMoving: false,
+    isJumping: false,
+    status: persistedSnapshot ? getResumeStatus(currentTile) : 'Tap the dice to start your next move.',
   });
 }
 
