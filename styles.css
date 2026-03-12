@@ -339,6 +339,198 @@ button {
     linear-gradient(180deg, rgba(214, 241, 251, 0) 0%, rgba(244, 239, 230, 0.4) 100%);
 }
 
+.minigame-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.minigame-modal[hidden] {
+  display: none;
+}
+
+.minigame-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(41, 53, 79, 0.36);
+  backdrop-filter: blur(4px);
+}
+
+.minigame-card {
+  position: relative;
+  width: min(100%, 396px);
+  padding: 18px 18px 16px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.96));
+  box-shadow:
+    0 28px 48px rgba(58, 73, 108, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  z-index: 1;
+}
+
+.minigame-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.minigame-title-block {
+  display: grid;
+  gap: 4px;
+}
+
+.minigame-kicker,
+.minigame-column-label {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8e95a7;
+}
+
+.minigame-title-block h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.05;
+  color: #3362b6;
+}
+
+.minigame-meta {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.minigame-timer,
+.minigame-reward {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.minigame-timer {
+  background: linear-gradient(180deg, #6eb4ff, #3c7ef0);
+  color: #ffffff;
+  box-shadow: 0 10px 18px rgba(60, 126, 240, 0.24);
+}
+
+.minigame-reward {
+  background: linear-gradient(180deg, #ffe08a, #f2b43d);
+  color: #7a541d;
+  box-shadow: 0 10px 18px rgba(233, 176, 73, 0.22);
+}
+
+.minigame-copy,
+.minigame-status {
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: #617089;
+}
+
+.minigame-columns {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.minigame-column {
+  display: grid;
+  gap: 8px;
+}
+
+.minigame-list {
+  display: grid;
+  gap: 8px;
+}
+
+.minigame-choice {
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 16px;
+  text-align: left;
+  background: linear-gradient(180deg, #ffffff, #eef3fb);
+  color: #4e5a72;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow:
+    0 12px 20px rgba(94, 111, 151, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.minigame-choice:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.minigame-choice.is-selected {
+  background: linear-gradient(180deg, #e4f0ff, #c9defe);
+  box-shadow:
+    0 14px 22px rgba(74, 122, 196, 0.18),
+    inset 0 0 0 2px rgba(72, 122, 216, 0.34);
+}
+
+.minigame-choice.is-matched {
+  background: linear-gradient(180deg, #dff7ea, #c6ebd8);
+  color: #397557;
+  box-shadow:
+    0 14px 22px rgba(81, 158, 112, 0.14),
+    inset 0 0 0 2px rgba(79, 153, 111, 0.22);
+  cursor: default;
+}
+
+.minigame-choice.is-locked {
+  opacity: 0.64;
+}
+
+.minigame-choice:disabled {
+  cursor: default;
+}
+
+.minigame-status {
+  min-height: 2.4em;
+  color: #5a6f95;
+}
+
+.minigame-footer {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.minigame-progress {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #7a86a1;
+}
+
+.minigame-action {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #69b8ff, #2d83f5);
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  box-shadow: 0 14px 22px rgba(58, 125, 214, 0.22);
+  cursor: pointer;
+}
+
+.minigame-action:hover {
+  transform: translateY(-1px);
+}
+
 .camera-rig {
   position: absolute;
   inset: 0;
@@ -1093,5 +1285,18 @@ button {
     top: -12px;
     right: calc(100% + 2px);
     width: 142px;
+  }
+
+  .minigame-modal {
+    padding: 16px;
+  }
+
+  .minigame-card {
+    width: 100%;
+    padding: 16px 14px 14px;
+  }
+
+  .minigame-columns {
+    grid-template-columns: 1fr;
   }
 }

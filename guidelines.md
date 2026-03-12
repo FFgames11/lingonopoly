@@ -13,6 +13,7 @@ Git history is available in this folder. The changelog below still includes a re
 - App type: static HTML/CSS/JavaScript prototype
 - Runtime model: client-side only, no backend, no build step, with browser-local persistence via `localStorage`
 - Primary interaction: press the dice button to roll, animate the dice, move the player token around the board, collect fixed coins per tile moved, and land on either regular or special tiles
+- Current featured special-tile activity: a popup word-matching mini-game called `Lexicon Link`
 - Design direction: mobile game / casual board game interface with bright gradients, floating HUD elements, and a fixed isometric board presentation
 
 ## Core Features
@@ -50,7 +51,8 @@ Git history is available in this folder. The changelog below still includes a re
   - `special`
 - The first tile is always the `start` tile (`Launchpad`).
 - Regular tiles are generic safe spaces with no challenge effect and no icon markup.
-- Special tiles use names from the `specialTileLabels` pool, such as `Syntax Street`, `Prompt Pier`, or `Final Frame`.
+- All spawned special tiles currently use one shared type and one shared label: `Lexicon Link`.
+- Every special tile currently represents the same word-matching mini-game rather than different challenge types.
 - Each page load randomizes the special tile layout:
   - at least `4` special tiles
   - at most `6` special tiles
@@ -62,9 +64,22 @@ Git history is available in this folder. The changelog below still includes a re
 - Coin rewards do not depend on tile type; they are awarded for movement itself.
 - Landing outcomes:
   - `regular` tile: no extra effect, player can roll again
-  - `special` tile: placeholder language-learning challenge status only for now
+  - `special` tile: opens the `Lexicon Link` popup mini-game
   - `start` tile: no special challenge, just a landing/update message
 - Because coin rewards are step-based, a roll of `N` grants `N * 38` coins total by the time movement completes.
+
+### 3.6. Lexicon Link mini-game
+- `Lexicon Link` is the current special tile name and the current recommended label for this challenge type.
+- The mini-game opens as a popup overlay when the player lands on any special tile.
+- Gameplay rules:
+  - show `5` English words
+  - show `5` Chinese translations
+  - player must match each English word to its correct Chinese translation
+  - the player races against a `25` second timer
+- Reward rule:
+  - clearing all matches before time expires grants `+180` bonus coins
+  - timing out grants no bonus coins
+- The popup blocks further dice rolls until the player resolves the mini-game and closes it.
 
 ### 4. Dice system
 - Dice faces are limited to standard values `1` through `6`.
@@ -166,7 +181,9 @@ Git history is available in this folder. The changelog below still includes a re
 8. `moveToken()` advances the token step by step with `260ms` delays.
 9. On each step, the character sprite rotates toward the next tile, jumps, lands, and adds `38` coins to the saved total.
 10. When movement ends, the landing message depends on whether the destination is a `regular`, `special`, or `start` tile.
-11. If no usable dice remain, the roll button stays disabled until dice are added again.
+11. If the destination is a special tile, the `Lexicon Link` popup opens immediately.
+12. Clearing the popup mini-game before the timer ends grants extra coins and then returns control to the board.
+13. If no usable dice remain, the roll button stays disabled until dice are added again.
 
 ## State Model
 The current runtime state is stored in a single `state` object in `main.js`.
@@ -184,9 +201,17 @@ Tracked fields:
 - `boardMode`: currently hardcoded to `solo`
 - `isRolling`: true during dice animation
 - `isMoving`: true during token travel
+- `isMiniGameOpen`: true while the popup word-matching challenge is active
 - `facing`: current sprite orientation (`SE`, `SW`, `NW`, `NE`)
 - `isJumping`: true during the airborne half of each movement step
 - `activeFreeDiceOfferId`: the currently claimable free-dice condition, if any
+- `miniGamePairs`: the active set of 5 word/translation pairs
+- `miniGameTranslations`: the shuffled translation column order for the current popup
+- `miniGameMatchedIds`: matched pair ids for the current popup
+- `miniGameSelectedWordId`: currently selected English word
+- `miniGameSelectedTranslationId`: currently selected Chinese translation
+- `miniGameTimeLeft`: remaining seconds in the popup challenge
+- `miniGameResult`: `success`, `failure`, or `null` while the challenge is unresolved
 
 ## File Responsibilities
 
@@ -195,6 +220,7 @@ Tracked fields:
 - Provides `data-role` hooks for JavaScript rendering.
 - Contains the coin counter pill in the top HUD.
 - Contains the dice meter DOM, bonus dice label, store `+` button, and the free-dice claim button shell.
+- Contains the popup modal shell for the `Lexicon Link` mini-game.
 - Loads `styles.css` and `main.js`.
 
 ### `main.js`
@@ -203,15 +229,15 @@ Tracked fields:
 - Randomizes which non-start tiles are special for the current page load.
 - Defines the isometric projection from logical board coordinates into screen space.
 - Builds dynamic SVG dice markup.
-- Renders board, token sprite, dice, HUD, and camera movement.
+- Renders board, token sprite, dice, HUD, camera movement, and popup mini-game state.
 - Persists player progress such as position, coins, and dice inventory in `localStorage`.
-- Handles dice inventory, coin rewards, free-dice claim sequencing, roll interaction, and movement sequencing.
+- Handles dice inventory, coin rewards, popup challenge logic, free-dice claim sequencing, roll interaction, and movement sequencing.
 
 ### `styles.css`
 - Defines the entire visual identity of the prototype.
 - Uses gradients, shadows, pseudo-elements, and animations extensively.
 - Owns the token sprite presentation, directional pose treatment, and jump motion.
-- Styles the dice meter, coin HUD pill, placeholder store button, and animated free-dice event button.
+- Styles the dice meter, coin HUD pill, popup mini-game, placeholder store button, and animated free-dice event button.
 - Contains responsive adjustments for narrower screens.
 
 ## UX / Visual Characteristics
@@ -221,6 +247,7 @@ Tracked fields:
 - Fixed isometric viewpoint with rounded-corner board tiles that use inset panels, soft texture, and slight volume
 - Centerpiece 3D dice cube button with arcade-style motion
 - A persistent top-HUD coin counter that increases by a fixed amount per tile moved
+- A centered popup card for `Lexicon Link` with a timer, reward badge, and two matching columns
 - A blue-filled dice meter and a floating event-style free-dice claim badge near the dice dock
 - Cartoon token with simple layered body parts
 - Decorative game-economy style labels such as `Mayor`, `Lv. 2`, `Tile`, and `Mode`
@@ -230,7 +257,8 @@ Tracked fields:
 - No backend or cross-device save system; persistence is local to the current browser via `localStorage`
 - No ownership, rent, spending, or card mechanics beyond passive coin accumulation
 - No event handling for non-dice buttons
-- Special tiles only show placeholder challenge messaging right now; no actual language-learning challenge logic exists yet
+- Only one language-learning mini-game exists so far: `Lexicon Link`
+- All special tiles currently point to the same mini-game type instead of a varied special-tile catalog
 - The store `+` button beside the dice meter is UI-only for now; real-money purchase flow is not implemented
 - The free-dice condition system is only scaffolded with a single sample condition and no real gameplay triggers yet
 - No board data externalization; content is hardcoded in JavaScript
@@ -282,6 +310,8 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 - Widened the dice meter label area so overflow rewards such as `15/15 +2` remain visible inside the meter instead of being clipped.
 - Added fixed `38`-coin rewards per movement step, a saved coin counter, and browser-local persistence for player progress.
 - Reworked the board so only `4` to `6` tiles are special on each load, while special positions reroll on refresh without resetting the saved player position or resources.
+- Added the `Lexicon Link` popup mini-game with 5 English-to-Chinese matches, a 25 second timer, and a +180 coin success reward.
+- Changed all randomly spawned special tiles to use the same `Lexicon Link` challenge type for now.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:

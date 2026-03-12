@@ -3,6 +3,12 @@ const stepDelayMs = 260;
 const diceAnimationMs = 1100;
 const defaultDiceCount = 15;
 const coinRewardPerStep = 38;
+const wordMatchRewardCoins = 180;
+const wordMatchTimeLimitSeconds = 25;
+const wordMatchTile = {
+  label: 'Lexicon Link',
+  theme: 'blueSpark',
+};
 const persistedStateKey = 'english-town-state-v3';
 const minSpecialTilesPerBoard = 4;
 const maxSpecialTilesPerBoard = 6;
@@ -16,6 +22,18 @@ const freeDiceOffers = [
     label: 'Build 5 houses',
     reward: 5,
   },
+];
+const wordMatchVocabularyPool = [
+  { id: 'apple', word: 'apple', translation: '苹果' },
+  { id: 'book', word: 'book', translation: '书' },
+  { id: 'water', word: 'water', translation: '水' },
+  { id: 'teacher', word: 'teacher', translation: '老师' },
+  { id: 'house', word: 'house', translation: '房子' },
+  { id: 'school', word: 'school', translation: '学校' },
+  { id: 'friend', word: 'friend', translation: '朋友' },
+  { id: 'market', word: 'market', translation: '市场' },
+  { id: 'sun', word: 'sun', translation: '太阳' },
+  { id: 'train', word: 'train', translation: '火车' },
 ];
 
 const pipLayout = {
@@ -89,31 +107,6 @@ const cubePlanes = {
 };
 
 const startTileLabel = 'Launchpad';
-const specialTileLabels = [
-  'Syntax Street',
-  'Lucky Draw',
-  'Letter Lane',
-  'Tile Town',
-  'Mystery Card',
-  'Market Walk',
-  'Verb Vista',
-  'Chance Brook',
-  'Vowel Vale',
-  'Prompt Pier',
-  'Story Stop',
-  'Fortune Fork',
-  'Logic Loop',
-  'Puzzle Plaza',
-  'Quest Quay',
-  'Bonus Bend',
-  'Pixel Park',
-  'Reward Row',
-  'Signal Square',
-  'Surprise Step',
-  'Grammar Grove',
-  'Echo Estate',
-  'Final Frame',
-];
 
 const tileThemes = {
   orangeHome: {
@@ -219,14 +212,6 @@ const tileThemes = {
   },
 };
 
-const challengeTileThemeSequence = [
-  tileThemes.orangeHome,
-  tileThemes.pinkPlay,
-  tileThemes.blueSpark,
-  tileThemes.goldCheck,
-  tileThemes.slateBars,
-  tileThemes.periwinkleMark,
-];
 const regularTileThemes = [tileThemes.regularMint, tileThemes.regularStone];
 const persistedStateFields = ['tiles', 'position', 'diceCount', 'diceMax', 'overflowDice', 'coins', 'lastRoll', 'activeFreeDiceOfferId'];
 
@@ -243,13 +228,23 @@ const state = {
   boardMode: 'solo',
   isRolling: false,
   isMoving: false,
+  isMiniGameOpen: false,
   facing: 'SE',
   isJumping: false,
   activeFreeDiceOfferId: freeDiceOffers[0]?.id ?? null,
+  miniGamePairs: [],
+  miniGameTranslations: [],
+  miniGameMatchedIds: [],
+  miniGameSelectedWordId: null,
+  miniGameSelectedTranslationId: null,
+  miniGameStatus: 'Pick a word, then choose the matching translation.',
+  miniGameTimeLeft: wordMatchTimeLimitSeconds,
+  miniGameResult: null,
 };
 
 let diceIntervalId = null;
 let statusTimeoutId = null;
+let miniGameTimerId = null;
 
 function getDirection(from, to) {
   const dx = to.gridX - from.gridX;
@@ -278,6 +273,16 @@ const dom = {
   diceStoreTrigger: document.querySelector('[data-role="dice-store-trigger"]'),
   freeDiceClaim: document.querySelector('[data-role="free-dice-claim"]'),
   freeDiceLabel: document.querySelector('[data-role="free-dice-label"]'),
+  minigameModal: document.querySelector('[data-role="minigame-modal"]'),
+  minigameTitle: document.querySelector('[data-role="minigame-title"]'),
+  minigameTimer: document.querySelector('[data-role="minigame-timer"]'),
+  minigameReward: document.querySelector('[data-role="minigame-reward"]'),
+  minigameCopy: document.querySelector('[data-role="minigame-copy"]'),
+  minigameWordList: document.querySelector('[data-role="word-list"]'),
+  minigameTranslationList: document.querySelector('[data-role="translation-list"]'),
+  minigameStatus: document.querySelector('[data-role="minigame-status"]'),
+  minigameProgress: document.querySelector('[data-role="minigame-progress"]'),
+  minigameAction: document.querySelector('[data-role="minigame-action"]'),
   boardStage: document.querySelector('[data-role="board-stage"]'),
   boardPlane: document.querySelector('[data-role="board-plane"]'),
 };
@@ -305,6 +310,13 @@ function shuffleArray(items) {
   return nextItems;
 }
 
+function stopMiniGameTimer() {
+  if (miniGameTimerId) {
+    window.clearInterval(miniGameTimerId);
+    miniGameTimerId = null;
+  }
+}
+
 function clampInteger(value, minimum, maximum) {
   if (!Number.isFinite(value)) {
     return minimum;
@@ -316,18 +328,21 @@ function clampInteger(value, minimum, maximum) {
 
 function buildSpecialTileAssignments(tileCount) {
   const shuffledPositions = shuffleArray(Array.from({ length: tileCount - 1 }, (_, index) => index + 1));
-  const shuffledLabels = shuffleArray(specialTileLabels);
   const specialTileCount = getRandomInt(minSpecialTilesPerBoard, Math.min(maxSpecialTilesPerBoard, tileCount - 1));
   const assignments = new Map();
 
-  shuffledPositions.slice(0, specialTileCount).forEach((position, index) => {
+  shuffledPositions.slice(0, specialTileCount).forEach((position) => {
     assignments.set(position, {
-      label: shuffledLabels[index],
-      theme: challengeTileThemeSequence[index % challengeTileThemeSequence.length],
+      label: wordMatchTile.label,
+      theme: tileThemes[wordMatchTile.theme],
     });
   });
 
   return assignments;
+}
+
+function buildWordMatchPairs() {
+  return shuffleArray(wordMatchVocabularyPool).slice(0, 5);
 }
 
 function getRegularTileTheme(index) {
@@ -405,7 +420,7 @@ function getDiceFillPercent() {
 }
 
 function canRollDice() {
-  return state.tiles.length > 0 && !state.isRolling && !state.isMoving && state.diceCount + state.overflowDice > 0;
+  return state.tiles.length > 0 && !state.isRolling && !state.isMoving && !state.isMiniGameOpen && state.diceCount + state.overflowDice > 0;
 }
 
 function projectPointToPlane([u, v], plane) {
@@ -567,11 +582,194 @@ function renderDice(face) {
   `;
 }
 
+function openWordMatchMiniGame() {
+  stopMiniGameTimer();
+  const miniGamePairs = buildWordMatchPairs();
+
+  updateState({
+    isMiniGameOpen: true,
+    miniGamePairs,
+    miniGameTranslations: shuffleArray(miniGamePairs),
+    miniGameMatchedIds: [],
+    miniGameSelectedWordId: null,
+    miniGameSelectedTranslationId: null,
+    miniGameStatus: 'Pick a word, then choose the matching translation.',
+    miniGameTimeLeft: wordMatchTimeLimitSeconds,
+    miniGameResult: null,
+    status: `${wordMatchTile.label} opened. Match all 5 words before time runs out.`,
+  });
+
+  miniGameTimerId = window.setInterval(() => {
+    if (state.miniGameResult) {
+      stopMiniGameTimer();
+      return;
+    }
+
+    if (state.miniGameTimeLeft <= 1) {
+      stopMiniGameTimer();
+      updateState({
+        miniGameTimeLeft: 0,
+        miniGameResult: 'failure',
+        miniGameSelectedWordId: null,
+        miniGameSelectedTranslationId: null,
+        miniGameStatus: 'Time is up. No bonus coins this round.',
+        status: `${wordMatchTile.label} ended. No bonus coins earned.`,
+      });
+      return;
+    }
+
+    updateState({
+      miniGameTimeLeft: state.miniGameTimeLeft - 1,
+    });
+  }, 1000);
+}
+
+function closeWordMatchMiniGame() {
+  stopMiniGameTimer();
+  updateState({
+    isMiniGameOpen: false,
+    miniGamePairs: [],
+    miniGameTranslations: [],
+    miniGameMatchedIds: [],
+    miniGameSelectedWordId: null,
+    miniGameSelectedTranslationId: null,
+    miniGameTimeLeft: wordMatchTimeLimitSeconds,
+    miniGameResult: null,
+    miniGameStatus: 'Pick a word, then choose the matching translation.',
+  });
+}
+
+function resolveWordMatchSelection() {
+  if (!state.miniGameSelectedWordId || !state.miniGameSelectedTranslationId) {
+    return;
+  }
+
+  const isCorrect = state.miniGameSelectedWordId === state.miniGameSelectedTranslationId;
+
+  if (!isCorrect) {
+    updateState({
+      miniGameSelectedWordId: null,
+      miniGameSelectedTranslationId: null,
+      miniGameStatus: 'That pair does not match. Try again.',
+    });
+    return;
+  }
+
+  const nextMatchedIds = [...state.miniGameMatchedIds, state.miniGameSelectedWordId];
+  const completedAllPairs = nextMatchedIds.length === state.miniGamePairs.length;
+
+  if (completedAllPairs) {
+    stopMiniGameTimer();
+    updateState({
+      coins: state.coins + wordMatchRewardCoins,
+      miniGameMatchedIds: nextMatchedIds,
+      miniGameSelectedWordId: null,
+      miniGameSelectedTranslationId: null,
+      miniGameResult: 'success',
+      miniGameStatus: `Perfect. You earned +${wordMatchRewardCoins} bonus coins.`,
+      status: `${wordMatchTile.label} cleared. +${wordMatchRewardCoins} bonus coins awarded.`,
+    });
+    return;
+  }
+
+  updateState({
+    miniGameMatchedIds: nextMatchedIds,
+    miniGameSelectedWordId: null,
+    miniGameSelectedTranslationId: null,
+    miniGameStatus: `Matched ${state.miniGameSelectedWordId}. Keep going.`,
+  });
+}
+
+function handleMiniGameChoice(action, choiceId) {
+  if (!state.isMiniGameOpen || state.miniGameResult || state.miniGameMatchedIds.includes(choiceId)) {
+    return;
+  }
+
+  if (action === 'select-word') {
+    updateState({
+      miniGameSelectedWordId: choiceId,
+      miniGameStatus: state.miniGameSelectedTranslationId
+        ? state.miniGameStatus
+        : 'Now pick the matching Chinese translation.',
+    });
+  }
+
+  if (action === 'select-translation') {
+    updateState({
+      miniGameSelectedTranslationId: choiceId,
+      miniGameStatus: state.miniGameSelectedWordId
+        ? state.miniGameStatus
+        : 'Now pick the English word that matches this translation.',
+    });
+  }
+
+  window.setTimeout(resolveWordMatchSelection, 0);
+}
+
+function renderMiniGame() {
+  dom.minigameModal.hidden = !state.isMiniGameOpen;
+
+  if (!state.isMiniGameOpen) {
+    return;
+  }
+
+  const isResolved = Boolean(state.miniGameResult);
+
+  dom.minigameTitle.textContent = wordMatchTile.label;
+  dom.minigameTimer.textContent = `${state.miniGameTimeLeft}s`;
+  dom.minigameReward.textContent = `+${wordMatchRewardCoins} coins`;
+  dom.minigameCopy.textContent = 'Match each English word with its Chinese translation before the timer ends.';
+  dom.minigameStatus.textContent = state.miniGameStatus;
+  dom.minigameProgress.textContent = `${state.miniGameMatchedIds.length}/${state.miniGamePairs.length} matched`;
+  dom.minigameAction.hidden = !isResolved;
+  dom.minigameAction.textContent = state.miniGameResult === 'success' ? 'Collect' : 'Continue';
+
+  dom.minigameWordList.innerHTML = state.miniGamePairs
+    .map((pair) => {
+      const isMatched = state.miniGameMatchedIds.includes(pair.id);
+      const classNames = [
+        'minigame-choice',
+        isMatched ? 'is-matched' : '',
+        state.miniGameSelectedWordId === pair.id ? 'is-selected' : '',
+        state.miniGameSelectedTranslationId && state.miniGameSelectedTranslationId !== pair.id && !isMatched ? 'is-locked' : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      return `
+        <button class="${classNames}" data-action="select-word" data-choice-id="${pair.id}" ${isMatched || isResolved ? 'disabled' : ''} type="button">
+          ${pair.word}
+        </button>
+      `;
+    })
+    .join('');
+
+  dom.minigameTranslationList.innerHTML = state.miniGameTranslations
+    .map((pair) => {
+      const isMatched = state.miniGameMatchedIds.includes(pair.id);
+      const classNames = [
+        'minigame-choice',
+        isMatched ? 'is-matched' : '',
+        state.miniGameSelectedTranslationId === pair.id ? 'is-selected' : '',
+        state.miniGameSelectedWordId && state.miniGameSelectedWordId !== pair.id && !isMatched ? 'is-locked' : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      return `
+        <button class="${classNames}" data-action="select-translation" data-choice-id="${pair.id}" ${isMatched || isResolved ? 'disabled' : ''} type="button">
+          ${pair.translation}
+        </button>
+      `;
+    })
+    .join('');
+}
+
 function getLandingStatus(tile, coinsEarned) {
   const coinCopy = `+${coinsEarned} coins.`;
 
   if (tile.kind === 'special') {
-    return `Landed on ${tile.label}. ${coinCopy} Language challenge coming soon.`;
+    return `Landed on ${tile.label}. ${coinCopy} Word matching challenge opened.`;
   }
 
   if (tile.kind === 'start') {
@@ -583,14 +781,14 @@ function getLandingStatus(tile, coinsEarned) {
 
 function getResumeStatus(tile) {
   if (tile.kind === 'special') {
-    return `Welcome back. You are on ${tile.label}. Special tiles refreshed.`;
+    return `Welcome back. You are on ${tile.label}. ${wordMatchTile.label} tiles refreshed.`;
   }
 
   if (tile.kind === 'start') {
-    return `Welcome back. You are at ${tile.label}. Special tiles refreshed.`;
+    return `Welcome back. You are at ${tile.label}. ${wordMatchTile.label} tiles refreshed.`;
   }
 
-  return 'Welcome back. You are on a regular tile. Special tiles refreshed.';
+  return `Welcome back. You are on a regular tile. ${wordMatchTile.label} tiles refreshed.`;
 }
 
 function renderHud() {
@@ -613,6 +811,8 @@ function renderHud() {
   dom.rollTrigger.classList.toggle('is-empty', state.diceCount + state.overflowDice === 0);
   dom.diceLabel.textContent = state.isRolling
     ? 'Rolling...'
+    : state.isMiniGameOpen
+      ? 'Challenge open'
     : state.isMoving
       ? 'Moving...'
       : state.diceCount + state.overflowDice > 0
@@ -628,6 +828,8 @@ function renderHud() {
     'aria-label',
     state.isRolling
       ? 'Rolling dice'
+      : state.isMiniGameOpen
+        ? 'Mini game is open'
       : state.isMoving
         ? 'Character is moving'
         : state.diceCount + state.overflowDice === 0
@@ -695,6 +897,7 @@ function render() {
   renderDice(state.diceFace);
   renderBoard();
   renderCamera();
+  renderMiniGame();
 }
 
 function updateState(partialState) {
@@ -757,6 +960,10 @@ async function moveToken(steps) {
     lastRoll: steps,
     status: getLandingStatus(landedTile, steps * coinRewardPerStep),
   });
+
+  if (landedTile.kind === 'special') {
+    openWordMatchMiniGame();
+  }
 }
 
 async function handleRoll() {
@@ -850,11 +1057,28 @@ function handleDiceStoreClick() {
 dom.rollTrigger.addEventListener('click', handleRoll);
 dom.freeDiceClaim.addEventListener('click', handleClaimFreeDice);
 dom.diceStoreTrigger.addEventListener('click', handleDiceStoreClick);
+dom.minigameModal.addEventListener('click', (event) => {
+  const actionTarget = event.target.closest('[data-action]');
+  const actionButton = event.target.closest('[data-role="minigame-action"]');
+
+  if (actionButton) {
+    closeWordMatchMiniGame();
+    return;
+  }
+
+  if (!actionTarget) {
+    return;
+  }
+
+  handleMiniGameChoice(actionTarget.dataset.action, actionTarget.dataset.choiceId);
+});
 window.addEventListener('resize', renderCamera);
 window.addEventListener('beforeunload', () => {
   if (diceIntervalId) {
     window.clearInterval(diceIntervalId);
   }
+
+  stopMiniGameTimer();
 });
 
 bootstrap();

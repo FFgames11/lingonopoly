@@ -91,6 +91,46 @@
           </div>
         </section>
 
+        <section aria-live="polite" class="minigame-modal" data-role="minigame-modal" hidden>
+          <div class="minigame-backdrop"></div>
+          <div class="minigame-card" data-role="minigame-card">
+            <div class="minigame-header">
+              <div class="minigame-title-block">
+                <span class="minigame-kicker">Special Tile</span>
+                <h2 data-role="minigame-title">Lexicon Link</h2>
+              </div>
+              <div class="minigame-meta">
+                <span class="minigame-timer" data-role="minigame-timer">25s</span>
+                <span class="minigame-reward" data-role="minigame-reward">+180 coins</span>
+              </div>
+            </div>
+
+            <p class="minigame-copy" data-role="minigame-copy">
+              Match each English word with its Chinese translation before the timer ends.
+            </p>
+
+            <div class="minigame-columns">
+              <div class="minigame-column">
+                <span class="minigame-column-label">English</span>
+                <div class="minigame-list" data-role="word-list"></div>
+              </div>
+              <div class="minigame-column">
+                <span class="minigame-column-label">Chinese</span>
+                <div class="minigame-list" data-role="translation-list"></div>
+              </div>
+            </div>
+
+            <p class="minigame-status" data-role="minigame-status">
+              Pick a word, then choose the matching translation.
+            </p>
+
+            <div class="minigame-footer">
+              <span class="minigame-progress" data-role="minigame-progress">0/5 matched</span>
+              <button class="minigame-action" data-role="minigame-action" hidden type="button">Continue</button>
+            </div>
+          </div>
+        </section>
+
         <footer class="bottom-hud">
           <div class="dock-side">
             <button class="nav-orb mint" type="button" aria-label="Map">
