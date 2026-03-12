@@ -13,7 +13,7 @@ Git history is available in this folder. The changelog below still includes a re
 - App type: static HTML/CSS/JavaScript prototype
 - Runtime model: client-side only, no backend, no build step, no persistence
 - Primary interaction: press the dice button to roll, animate the dice, and move the player token around the board
-- Design direction: mobile game / casual board game interface with bright gradients, floating HUD elements, and isometric board styling
+- Design direction: mobile game / casual board game interface with bright gradients, floating HUD elements, and a fixed isometric board presentation
 
 ## Core Features
 
@@ -33,6 +33,15 @@ Git history is available in this folder. The changelog below still includes a re
 - This produces a 24-tile perimeter board.
 - Tiles are converted into screen coordinates with an isometric projection helper: `toScreenPosition(x, y)`.
 - Tile data is assembled by `buildTiles()`.
+
+### 2.5. Isometric viewpoint and board space
+- The game is shown from a fixed isometric point of view rather than a top-down grid.
+- Logical board positions are still stored as 2D ring coordinates (`gridX`, `gridY`).
+- `toScreenPosition(x, y)` converts those logical coordinates into screen coordinates using:
+  - `isoX = (x - y) * (tileWidth / 2)`
+  - `isoY = (x + y) * (tileHeight / 2)`
+- The rendered board therefore looks like a diamond-shaped loop even though movement logic still follows the perimeter of a square ring.
+- Tile layering and token layering depend on projected `screenY` so lower-on-screen objects visually sit in front.
 
 ### 3. Tile types and labels
 - Tile kinds currently supported:
@@ -60,11 +69,32 @@ Git history is available in this folder. The changelog below still includes a re
   - movement lock state
   - sequential tile stepping
   - final landing message
-- The token gets a bounce animation while travelling.
+- The token is rendered separately from the tile markup as a single `.player-token` element positioned over the active tile.
+- The token gets a bounce/jump animation while travelling.
+- Each movement step has two phases:
+  - first half-step: set `isJumping = true` and update facing direction
+  - second half-step: advance `position` to the next tile and clear `isJumping`
+- Facing is derived from the current tile's logical grid delta to the next tile via `getDirection()`.
+- The token can face `SE`, `SW`, `NW`, or `NE`, and `renderBoard()` applies per-facing pixel offsets so the sprite stays visually centered on the diamond tile art.
+- The token always renders slightly above the active tile with `z-index` based on the current tile's projected `screenY`.
+
+### 5.5. Character sprite interaction model
+- There is currently one playable character sprite only.
+- The sprite does not have independent click, drag, or combat behavior; it is fully driven by the dice-roll loop.
+- User input affects the sprite indirectly:
+  - clicking the roll button triggers `handleRoll()`
+  - `handleRoll()` resolves a final die face
+  - `moveToken(finalFace)` advances the character step by step
+- During movement, the sprite is the main visual feedback for progress:
+  - it turns to face the next movement direction
+  - it jumps before each tile transition
+  - it lands on the next tile before the next step begins
+- After movement completes, the HUD status updates to the landing tile label and the sprite remains parked on that tile until the next roll.
 
 ### 6. Camera centering
 - The board plane is translated so the current tile remains visually centered in the stage.
 - `renderCamera()` recalculates translation using the current tile and viewport size.
+- The camera follows the active tile, not a free-moving world position, which keeps the token and destination tile framed consistently in the isometric stage.
 - Camera updates also run on window resize.
 
 ### 7. HUD and interaction states
@@ -95,7 +125,8 @@ Git history is available in this folder. The changelog below still includes a re
 4. `handleRoll()` enters rolling state and animates the dice for `1100ms`.
 5. A final random face is chosen.
 6. `moveToken()` advances the token step by step with `260ms` delays.
-7. HUD updates with last roll and final landing tile label.
+7. On each step, the character sprite rotates toward the next tile, jumps, then lands onto the next board position.
+8. HUD updates with last roll and final landing tile label.
 
 ## State Model
 The current runtime state is stored in a single `state` object in `main.js`.
@@ -109,6 +140,8 @@ Tracked fields:
 - `boardMode`: currently hardcoded to `solo`
 - `isRolling`: true during dice animation
 - `isMoving`: true during token travel
+- `facing`: current sprite orientation (`SE`, `SW`, `NW`, `NE`)
+- `isJumping`: true during the airborne half of each movement step
 
 ## File Responsibilities
 
@@ -120,20 +153,22 @@ Tracked fields:
 ### `main.js`
 - Owns all game logic.
 - Generates tiles and positions.
+- Defines the isometric projection from logical board coordinates into screen space.
 - Builds dynamic SVG dice markup.
-- Renders board, token, dice, HUD, and camera movement.
+- Renders board, token sprite, dice, HUD, and camera movement.
 - Handles roll interaction and movement sequencing.
 
 ### `styles.css`
 - Defines the entire visual identity of the prototype.
 - Uses gradients, shadows, pseudo-elements, and animations extensively.
+- Owns the token sprite presentation, directional pose treatment, and jump motion.
 - Contains responsive adjustments for narrower screens.
 
 ## UX / Visual Characteristics
 - Mobile-first composition constrained around a portrait game screen
 - Bright pastel background gradients
 - Floating white HUD panels with soft shadows
-- Isometric rounded-corner board tiles with an inset panel, soft texture, and slight volume
+- Fixed isometric viewpoint with rounded-corner board tiles that use inset panels, soft texture, and slight volume
 - Centerpiece 3D dice cube button with arcade-style motion
 - Cartoon token with simple layered body parts
 - Decorative game-economy style labels such as `Mayor`, `Lv. 2`, `Tile`, and `Mode`
@@ -182,6 +217,10 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 - Restored the larger stylized board tile treatment with rounded corners, inset borders, light texture, and extra depth.
 - Kept the existing board coordinate system, tile arrangement, and token alignment unchanged while updating the tile visuals.
 - Reworked the roll control so it renders as a 3D dice cube with visible cube faces and pip details.
+
+### 2026-03-12
+- Expanded the onboarding guide to explain the fixed isometric projection and how logical grid coordinates map to screen space.
+- Documented the character sprite interaction loop, including facing updates, jump timing, and tile-centered token offsets during movement.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:
