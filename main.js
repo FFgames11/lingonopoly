@@ -2,7 +2,6 @@ const rollFaces = [1, 2, 3, 4, 5, 6];
 const stepDelayMs = 260;
 const diceAnimationMs = 1100;
 const defaultDiceCount = 15;
-const defaultBonusDice = 12;
 const tileWidth = 114;
 const tileHeight = 64;
 const originX = 160;
@@ -11,7 +10,7 @@ const freeDiceOffers = [
   {
     id: 'build-5-houses',
     label: 'Build 5 houses',
-    reward: 1,
+    reward: 5,
   },
 ];
 
@@ -214,7 +213,7 @@ const state = {
   diceFace: 1,
   diceCount: defaultDiceCount,
   diceMax: defaultDiceCount,
-  bonusDice: defaultBonusDice,
+  overflowDice: 0,
   lastRoll: null,
   status: 'Loading board...',
   boardMode: 'solo',
@@ -248,7 +247,7 @@ const dom = {
   diceArt: document.querySelector('[data-role="dice-art"]'),
   diceLabel: document.querySelector('.dice-label'),
   diceCount: document.querySelector('[data-role="dice-count"]'),
-  diceBonus: document.querySelector('[data-role="dice-bonus"]'),
+  diceOverflow: document.querySelector('[data-role="dice-overflow"]'),
   diceMeterTrack: document.querySelector('[data-role="dice-meter-track"]'),
   diceMeterFill: document.querySelector('[data-role="dice-meter-fill"]'),
   diceStoreTrigger: document.querySelector('[data-role="dice-store-trigger"]'),
@@ -279,7 +278,7 @@ function getDiceFillPercent() {
 }
 
 function canRollDice() {
-  return state.tiles.length > 0 && !state.isRolling && !state.isMoving && state.diceCount > 0;
+  return state.tiles.length > 0 && !state.isRolling && !state.isMoving && state.diceCount + state.overflowDice > 0;
 }
 
 function projectPointToPlane([u, v], plane) {
@@ -455,18 +454,19 @@ function renderHud() {
   dom.lastRoll.textContent = state.lastRoll === null ? '-' : String(state.lastRoll);
   dom.boardMode.textContent = state.boardMode;
   dom.diceCount.textContent = `${state.diceCount}/${state.diceMax}`;
-  dom.diceBonus.textContent = `+${state.bonusDice}`;
+  dom.diceOverflow.hidden = state.overflowDice === 0;
+  dom.diceOverflow.textContent = `+${state.overflowDice}`;
   dom.diceMeterFill.style.width = `${getDiceFillPercent()}%`;
   dom.diceMeterTrack.setAttribute('aria-valuemax', String(state.diceMax));
   dom.diceMeterTrack.setAttribute('aria-valuenow', String(state.diceCount));
   dom.rollTrigger.disabled = !canRoll;
   dom.rollTrigger.classList.toggle('is-rolling', state.isRolling);
-  dom.rollTrigger.classList.toggle('is-empty', state.diceCount === 0);
+  dom.rollTrigger.classList.toggle('is-empty', state.diceCount + state.overflowDice === 0);
   dom.diceLabel.textContent = state.isRolling
     ? 'Rolling...'
     : state.isMoving
       ? 'Moving...'
-      : state.diceCount > 0
+      : state.diceCount + state.overflowDice > 0
         ? 'Tap to roll'
         : 'Out of dice';
   dom.freeDiceClaim.hidden = !activeFreeDiceOffer;
@@ -481,9 +481,9 @@ function renderHud() {
       ? 'Rolling dice'
       : state.isMoving
         ? 'Character is moving'
-        : state.diceCount === 0
+        : state.diceCount + state.overflowDice === 0
           ? 'No dice left'
-          : `Roll dice, ${state.diceCount} left`,
+          : `Roll dice, ${state.diceCount + state.overflowDice} left`,
   );
 }
 
@@ -605,15 +605,19 @@ async function moveToken(steps) {
 async function handleRoll() {
   const canRoll = canRollDice();
   if (!canRoll) {
-    if (!state.isRolling && !state.isMoving && state.diceCount === 0) {
+    if (!state.isRolling && !state.isMoving && state.diceCount + state.overflowDice === 0) {
       updateState({ status: 'No dice left. Claim or buy more when available.' });
     }
 
     return;
   }
 
+  const nextOverflowDice = state.overflowDice > 0 ? state.overflowDice - 1 : 0;
+  const nextBaseDiceCount = state.overflowDice > 0 ? state.diceCount : Math.max(0, state.diceCount - 1);
+
   updateState({
-    diceCount: Math.max(0, state.diceCount - 1),
+    diceCount: nextBaseDiceCount,
+    overflowDice: nextOverflowDice,
     isRolling: true,
     status: 'Rolling dice...',
   });
@@ -657,10 +661,10 @@ function handleClaimFreeDice() {
   updateState({
     activeFreeDiceOfferId: null,
     diceCount: nextDiceCount,
-    bonusDice: state.bonusDice + overflowDice,
+    overflowDice: state.overflowDice + overflowDice,
     status:
       overflowDice > 0
-        ? `Free die claimed. ${overflowDice} extra stored in the bonus stack.`
+        ? `Reward claimed. ${overflowDice} overflow dice added on top of the full meter.`
         : `Free die claimed. ${nextDiceCount} of ${state.diceMax} ready.`,
   });
 }

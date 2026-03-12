@@ -806,8 +806,10 @@ button {
   top: 0;
   width: 120px;
   height: 28px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   font-size: 0.95rem;
   font-weight: 900;
   color: #ffffff;
@@ -818,20 +820,25 @@ button {
   pointer-events: none;
 }
 
+.dice-meter-overflow {
+  font-size: 0.82rem;
+  color: #d8efff;
+  text-shadow:
+    0 1px 0 rgba(16, 76, 154, 0.42),
+    0 2px 4px rgba(16, 76, 154, 0.28);
+}
+
+.dice-meter-overflow[hidden] {
+  display: none;
+}
+
 .dice-meter-side {
   position: absolute;
   right: 0;
   top: 1px;
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.dice-meter-bonus {
-  font-size: 1rem;
-  font-weight: 900;
-  color: #1660cb;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+  gap: 0;
 }
 
 .dice-meter-plus {

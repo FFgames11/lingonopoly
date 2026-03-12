@@ -58,14 +58,16 @@ Git history is available in this folder. The changelog below still includes a re
 - The current face plus left/right "ghost" faces are rendered to create a rolling illusion.
 - The main roll control now tracks a finite dice inventory:
   - default usable dice count: `15`
-  - default displayed bonus count: `+12`
+  - no overflow dice are shown by default at bootstrap
   - the main counter is shown as `current/max` (for example `15/15`)
 - The fill bar under the dice button is real DOM now, not a pseudo-element:
   - `index.html` contains a `.dice-meter-track` and `.dice-meter-fill`
   - `renderHud()` updates the fill width from `diceCount / diceMax`
+- Overflow dice are rendered inside the same meter label as an extra `+N` value only when the player has actually earned overflow from a reward.
+- Overflow dice are consumed before the base `diceCount`, but they do not increase the fill bar because the meter still represents only the capped `15` base dice.
 - Each roll consumes one usable die immediately when `handleRoll()` starts.
 - If `diceCount` reaches `0`, the roll button becomes unavailable until dice are added again.
-- The small `+` button next to the bonus count is present as a placeholder for future monetized dice purchases, but the purchase flow is not implemented yet.
+- The small store `+` button next to the meter is present as a placeholder for future monetized dice purchases, but the purchase flow is not implemented yet.
 - Rolling animation behavior:
   - fast face randomization during roll
   - pulse effect
@@ -77,9 +79,10 @@ Git history is available in this folder. The changelog below still includes a re
 - It is designed to appear only when a qualifying condition is active.
 - The current prototype uses a data-driven `freeDiceOffers` array with one sample condition:
   - label: `Build 5 houses`
-  - reward: `1` die
+  - reward: `5` dice
 - Clicking the button claims the reward once and hides that active offer.
-- If the usable dice pool is already full when the reward is claimed, the overflow is added to the displayed bonus count instead.
+- If the usable dice pool is already full when the reward is claimed, the reward is added as overflow dice instead.
+- If the usable pool is partially filled when the reward is claimed, it tops the pool up to `15` first and only the remainder becomes overflow.
 - The animated pointing hand is decorative guidance to draw attention to the claim button.
 
 ### 5. Token movement
@@ -159,7 +162,7 @@ Tracked fields:
 - `diceFace`: currently displayed die face
 - `diceCount`: current usable dice remaining for rolls
 - `diceMax`: current cap used by the meter display and fill bar
-- `bonusDice`: displayed overflow / bonus dice count shown beside the meter
+- `overflowDice`: reward-earned excess dice shown as `+N` inside the meter label
 - `lastRoll`: most recent completed roll
 - `status`: status text shown in the HUD bubble
 - `boardMode`: currently hardcoded to `solo`
@@ -253,7 +256,7 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 - Expanded the onboarding guide to explain the fixed isometric projection and how logical grid coordinates map to screen space.
 - Documented the character sprite interaction loop, including facing updates, jump timing, and tile-centered token offsets during movement.
 - Added a finite dice inventory with a blue fill meter, `15/15` default counter, and disabled rolling when usable dice reach zero.
-- Added a sample free-dice event button with a one-time claim flow and a placeholder `+12` bonus dice display beside the meter.
+- Added a sample free-dice event button with a one-time claim flow that can generate overflow dice above the `15` cap.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:
