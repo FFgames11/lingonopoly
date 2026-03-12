@@ -56,11 +56,31 @@ Git history is available in this folder. The changelog below still includes a re
 - Dice faces are limited to standard values `1` through `6`.
 - Dice visuals are generated dynamically as inline SVG using `getDiceMarkup()`.
 - The current face plus left/right "ghost" faces are rendered to create a rolling illusion.
+- The main roll control now tracks a finite dice inventory:
+  - default usable dice count: `15`
+  - default displayed bonus count: `+12`
+  - the main counter is shown as `current/max` (for example `15/15`)
+- The fill bar under the dice button is real DOM now, not a pseudo-element:
+  - `index.html` contains a `.dice-meter-track` and `.dice-meter-fill`
+  - `renderHud()` updates the fill width from `diceCount / diceMax`
+- Each roll consumes one usable die immediately when `handleRoll()` starts.
+- If `diceCount` reaches `0`, the roll button becomes unavailable until dice are added again.
+- The small `+` button next to the bonus count is present as a placeholder for future monetized dice purchases, but the purchase flow is not implemented yet.
 - Rolling animation behavior:
   - fast face randomization during roll
   - pulse effect
   - tumbling main die
   - motion-blur ghost dice
+
+### 4.5. Free dice event button
+- A separate event-style `Free Dice` button is rendered above-left of the main dice control.
+- It is designed to appear only when a qualifying condition is active.
+- The current prototype uses a data-driven `freeDiceOffers` array with one sample condition:
+  - label: `Build 5 houses`
+  - reward: `1` die
+- Clicking the button claims the reward once and hides that active offer.
+- If the usable dice pool is already full when the reward is claimed, the overflow is added to the displayed bonus count instead.
+- The animated pointing hand is decorative guidance to draw attention to the claim button.
 
 ### 5. Token movement
 - The player token moves one tile at a time rather than teleporting.
@@ -121,12 +141,14 @@ Git history is available in this folder. The changelog below still includes a re
 ## Current Behavioral Flow
 1. `bootstrap()` builds the tile list and sets the initial status.
 2. The first render shows the board, HUD, dice, and token on tile 0.
-3. User clicks the dice button.
-4. `handleRoll()` enters rolling state and animates the dice for `1100ms`.
-5. A final random face is chosen.
-6. `moveToken()` advances the token step by step with `260ms` delays.
-7. On each step, the character sprite rotates toward the next tile, jumps, then lands onto the next board position.
-8. HUD updates with last roll and final landing tile label.
+3. The first render also shows the dice inventory meter and any currently active free-dice claim button.
+4. User clicks the dice button.
+5. `handleRoll()` spends one usable die, enters rolling state, and animates the dice for `1100ms`.
+6. A final random face is chosen.
+7. `moveToken()` advances the token step by step with `260ms` delays.
+8. On each step, the character sprite rotates toward the next tile, jumps, then lands onto the next board position.
+9. HUD updates with last roll, remaining dice count, and final landing tile label.
+10. If no usable dice remain, the roll button stays disabled until dice are added again.
 
 ## State Model
 The current runtime state is stored in a single `state` object in `main.js`.
@@ -135,6 +157,9 @@ Tracked fields:
 - `tiles`: generated board tile array
 - `position`: current tile index
 - `diceFace`: currently displayed die face
+- `diceCount`: current usable dice remaining for rolls
+- `diceMax`: current cap used by the meter display and fill bar
+- `bonusDice`: displayed overflow / bonus dice count shown beside the meter
 - `lastRoll`: most recent completed roll
 - `status`: status text shown in the HUD bubble
 - `boardMode`: currently hardcoded to `solo`
@@ -142,12 +167,14 @@ Tracked fields:
 - `isMoving`: true during token travel
 - `facing`: current sprite orientation (`SE`, `SW`, `NW`, `NE`)
 - `isJumping`: true during the airborne half of each movement step
+- `activeFreeDiceOfferId`: the currently claimable free-dice condition, if any
 
 ## File Responsibilities
 
 ### `index.html`
 - Declares the app shell and all static UI containers.
 - Provides `data-role` hooks for JavaScript rendering.
+- Contains the dice meter DOM, bonus dice label, store `+` button, and the free-dice claim button shell.
 - Loads `styles.css` and `main.js`.
 
 ### `main.js`
@@ -156,12 +183,13 @@ Tracked fields:
 - Defines the isometric projection from logical board coordinates into screen space.
 - Builds dynamic SVG dice markup.
 - Renders board, token sprite, dice, HUD, and camera movement.
-- Handles roll interaction and movement sequencing.
+- Handles dice inventory, free-dice claim sequencing, roll interaction, and movement sequencing.
 
 ### `styles.css`
 - Defines the entire visual identity of the prototype.
 - Uses gradients, shadows, pseudo-elements, and animations extensively.
 - Owns the token sprite presentation, directional pose treatment, and jump motion.
+- Styles the dice meter, bonus counter, placeholder store button, and animated free-dice event button.
 - Contains responsive adjustments for narrower screens.
 
 ## UX / Visual Characteristics
@@ -170,6 +198,7 @@ Tracked fields:
 - Floating white HUD panels with soft shadows
 - Fixed isometric viewpoint with rounded-corner board tiles that use inset panels, soft texture, and slight volume
 - Centerpiece 3D dice cube button with arcade-style motion
+- A blue-filled dice meter and a floating event-style free-dice claim badge near the dice dock
 - Cartoon token with simple layered body parts
 - Decorative game-economy style labels such as `Mayor`, `Lv. 2`, `Tile`, and `Mode`
 
@@ -178,6 +207,8 @@ Tracked fields:
 - No save/load system
 - No score, money, ownership, rent, or card mechanics
 - No event handling for non-dice buttons
+- The store `+` button beside the dice meter is UI-only for now; real-money purchase flow is not implemented
+- The free-dice condition system is only scaffolded with a single sample condition and no real gameplay triggers yet
 - No board data externalization; content is hardcoded in JavaScript
 - No tests
 - No build tooling or package metadata
@@ -221,6 +252,8 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 ### 2026-03-12
 - Expanded the onboarding guide to explain the fixed isometric projection and how logical grid coordinates map to screen space.
 - Documented the character sprite interaction loop, including facing updates, jump timing, and tile-centered token offsets during movement.
+- Added a finite dice inventory with a blue fill meter, `15/15` default counter, and disabled rolling when usable dice reach zero.
+- Added a sample free-dice event button with a one-time claim flow and a placeholder `+12` bonus dice display beside the meter.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:

@@ -1,10 +1,19 @@
 const rollFaces = [1, 2, 3, 4, 5, 6];
 const stepDelayMs = 260;
 const diceAnimationMs = 1100;
+const defaultDiceCount = 15;
+const defaultBonusDice = 12;
 const tileWidth = 114;
 const tileHeight = 64;
 const originX = 160;
 const originY = 80;
+const freeDiceOffers = [
+  {
+    id: 'build-5-houses',
+    label: 'Build 5 houses',
+    reward: 1,
+  },
+];
 
 const pipLayout = {
   1: [[50, 50]],
@@ -203,6 +212,9 @@ const state = {
   tiles: [],
   position: 0,
   diceFace: 1,
+  diceCount: defaultDiceCount,
+  diceMax: defaultDiceCount,
+  bonusDice: defaultBonusDice,
   lastRoll: null,
   status: 'Loading board...',
   boardMode: 'solo',
@@ -210,6 +222,7 @@ const state = {
   isMoving: false,
   facing: 'SE',
   isJumping: false,
+  activeFreeDiceOfferId: freeDiceOffers[0]?.id ?? null,
 };
 
 let diceIntervalId = null;
@@ -233,6 +246,14 @@ const dom = {
   boardMode: document.querySelector('[data-role="board-mode"]'),
   rollTrigger: document.querySelector('[data-role="roll-trigger"]'),
   diceArt: document.querySelector('[data-role="dice-art"]'),
+  diceLabel: document.querySelector('.dice-label'),
+  diceCount: document.querySelector('[data-role="dice-count"]'),
+  diceBonus: document.querySelector('[data-role="dice-bonus"]'),
+  diceMeterTrack: document.querySelector('[data-role="dice-meter-track"]'),
+  diceMeterFill: document.querySelector('[data-role="dice-meter-fill"]'),
+  diceStoreTrigger: document.querySelector('[data-role="dice-store-trigger"]'),
+  freeDiceClaim: document.querySelector('[data-role="free-dice-claim"]'),
+  freeDiceLabel: document.querySelector('[data-role="free-dice-label"]'),
   boardStage: document.querySelector('[data-role="board-stage"]'),
   boardPlane: document.querySelector('[data-role="board-plane"]'),
 };
@@ -243,6 +264,22 @@ function delay(ms) {
 
 function getRandomFace() {
   return rollFaces[Math.floor(Math.random() * rollFaces.length)];
+}
+
+function getActiveFreeDiceOffer() {
+  return freeDiceOffers.find((offer) => offer.id === state.activeFreeDiceOfferId) ?? null;
+}
+
+function getDiceFillPercent() {
+  if (state.diceMax === 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, (state.diceCount / state.diceMax) * 100));
+}
+
+function canRollDice() {
+  return state.tiles.length > 0 && !state.isRolling && !state.isMoving && state.diceCount > 0;
 }
 
 function projectPointToPlane([u, v], plane) {
@@ -410,16 +447,43 @@ function renderDice(face) {
 }
 
 function renderHud() {
-  const canRoll = state.tiles.length > 0 && !state.isRolling && !state.isMoving;
+  const canRoll = canRollDice();
+  const activeFreeDiceOffer = getActiveFreeDiceOffer();
+
   dom.status.textContent = state.status;
   dom.progressLabel.textContent = state.tiles.length ? `${state.position + 1} / ${state.tiles.length}` : '0 / 0';
   dom.lastRoll.textContent = state.lastRoll === null ? '-' : String(state.lastRoll);
   dom.boardMode.textContent = state.boardMode;
+  dom.diceCount.textContent = `${state.diceCount}/${state.diceMax}`;
+  dom.diceBonus.textContent = `+${state.bonusDice}`;
+  dom.diceMeterFill.style.width = `${getDiceFillPercent()}%`;
+  dom.diceMeterTrack.setAttribute('aria-valuemax', String(state.diceMax));
+  dom.diceMeterTrack.setAttribute('aria-valuenow', String(state.diceCount));
   dom.rollTrigger.disabled = !canRoll;
   dom.rollTrigger.classList.toggle('is-rolling', state.isRolling);
+  dom.rollTrigger.classList.toggle('is-empty', state.diceCount === 0);
+  dom.diceLabel.textContent = state.isRolling
+    ? 'Rolling...'
+    : state.isMoving
+      ? 'Moving...'
+      : state.diceCount > 0
+        ? 'Tap to roll'
+        : 'Out of dice';
+  dom.freeDiceClaim.hidden = !activeFreeDiceOffer;
+
+  if (activeFreeDiceOffer) {
+    dom.freeDiceLabel.textContent = activeFreeDiceOffer.label;
+  }
+
   dom.rollTrigger.setAttribute(
     'aria-label',
-    state.isRolling ? 'Rolling dice' : state.isMoving ? 'Character is moving' : 'Roll dice',
+    state.isRolling
+      ? 'Rolling dice'
+      : state.isMoving
+        ? 'Character is moving'
+        : state.diceCount === 0
+          ? 'No dice left'
+          : `Roll dice, ${state.diceCount} left`,
   );
 }
 
@@ -539,12 +603,17 @@ async function moveToken(steps) {
 }
 
 async function handleRoll() {
-  const canRoll = state.tiles.length > 0 && !state.isRolling && !state.isMoving;
+  const canRoll = canRollDice();
   if (!canRoll) {
+    if (!state.isRolling && !state.isMoving && state.diceCount === 0) {
+      updateState({ status: 'No dice left. Claim or buy more when available.' });
+    }
+
     return;
   }
 
   updateState({
+    diceCount: Math.max(0, state.diceCount - 1),
     isRolling: true,
     status: 'Rolling dice...',
   });
@@ -576,7 +645,35 @@ function bootstrap() {
   });
 }
 
+function handleClaimFreeDice() {
+  const activeFreeDiceOffer = getActiveFreeDiceOffer();
+  if (!activeFreeDiceOffer) {
+    return;
+  }
+
+  const nextDiceCount = Math.min(state.diceMax, state.diceCount + activeFreeDiceOffer.reward);
+  const overflowDice = Math.max(0, state.diceCount + activeFreeDiceOffer.reward - state.diceMax);
+
+  updateState({
+    activeFreeDiceOfferId: null,
+    diceCount: nextDiceCount,
+    bonusDice: state.bonusDice + overflowDice,
+    status:
+      overflowDice > 0
+        ? `Free die claimed. ${overflowDice} extra stored in the bonus stack.`
+        : `Free die claimed. ${nextDiceCount} of ${state.diceMax} ready.`,
+  });
+}
+
+function handleDiceStoreClick() {
+  updateState({
+    status: 'Dice purchases are not wired yet.',
+  });
+}
+
 dom.rollTrigger.addEventListener('click', handleRoll);
+dom.freeDiceClaim.addEventListener('click', handleClaimFreeDice);
+dom.diceStoreTrigger.addEventListener('click', handleDiceStoreClick);
 window.addEventListener('resize', renderCamera);
 window.addEventListener('beforeunload', () => {
   if (diceIntervalId) {

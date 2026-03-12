@@ -97,10 +97,43 @@
           </div>
 
           <div class="dice-dock">
+            <button class="free-dice-claim" data-role="free-dice-claim" type="button" hidden>
+              <span class="free-dice-icon" aria-hidden="true">
+                <span class="free-dice-pip pip-one"></span>
+                <span class="free-dice-pip pip-two"></span>
+                <span class="free-dice-pip pip-three"></span>
+              </span>
+              <span class="free-dice-copy">
+                <strong>Free Dice</strong>
+                <span data-role="free-dice-label">Build 5 houses</span>
+              </span>
+              <span class="free-dice-hand" aria-hidden="true">
+                <span class="free-dice-finger"></span>
+              </span>
+            </button>
+
             <button aria-label="Roll dice" class="dice-trigger" data-role="roll-trigger" type="button">
               <span class="sr-only">Roll dice</span>
               <span class="dice-trigger-art" aria-hidden="true" data-role="dice-art"></span>
             </button>
+            <div class="dice-meter-shell">
+              <div
+                aria-label="Dice remaining"
+                aria-valuemax="15"
+                aria-valuemin="0"
+                aria-valuenow="15"
+                class="dice-meter-track"
+                data-role="dice-meter-track"
+                role="progressbar"
+              >
+                <span class="dice-meter-fill" data-role="dice-meter-fill"></span>
+              </div>
+              <strong class="dice-meter-count" data-role="dice-count">15/15</strong>
+              <div class="dice-meter-side">
+                <span class="dice-meter-bonus" data-role="dice-bonus">+12</span>
+                <button aria-label="Buy more dice" class="dice-meter-plus" data-role="dice-store-trigger" type="button">+</button>
+              </div>
+            </div>
             <p class="dice-label">Tap to roll</p>
           </div>
 
