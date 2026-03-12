@@ -131,6 +131,55 @@
           </div>
         </section>
 
+        <section class="sentence-modal" data-role="sentence-modal" hidden>
+          <div class="minigame-backdrop"></div>
+          <div class="minigame-card sentence-card">
+            <div class="minigame-header">
+              <div class="minigame-title-block">
+                <span class="minigame-kicker">Sentence Practice Tile</span>
+                <h2 data-role="sentence-title">Sentence Studio</h2>
+              </div>
+              <div class="minigame-meta">
+                <span class="minigame-timer" data-role="sentence-timer">30s</span>
+                <span class="minigame-reward" data-role="sentence-reward">+160 coins</span>
+              </div>
+            </div>
+
+            <p class="minigame-copy" data-role="sentence-clue">
+              Arrange the words into the correct sentence.
+            </p>
+            <p class="sentence-target" data-role="sentence-target">Target idea</p>
+
+            <div class="sentence-builder" data-role="sentence-builder"></div>
+            <div class="sentence-bank" data-role="sentence-bank"></div>
+
+            <p class="minigame-status" data-role="sentence-status">
+              Tap the words in the correct order.
+            </p>
+
+            <div class="sentence-footer">
+              <button class="sentence-secondary" data-role="sentence-clear" type="button">Clear</button>
+              <span class="minigame-progress" data-role="sentence-progress">0/5 placed</span>
+              <button class="minigame-action" data-role="sentence-action" hidden type="button">Continue</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="dialog-modal" data-role="dialog-modal" hidden>
+          <div class="minigame-backdrop"></div>
+          <div class="dialog-card">
+            <span class="minigame-kicker" data-role="dialog-kicker">Tile</span>
+            <h2 class="dialog-title" data-role="dialog-title">Property</h2>
+            <p class="dialog-copy" data-role="dialog-copy">Dialog copy</p>
+            <p class="dialog-meta" data-role="dialog-meta"></p>
+            <p class="dialog-status" data-role="dialog-status"></p>
+            <div class="dialog-actions">
+              <button class="dialog-secondary-button" data-role="dialog-secondary" hidden type="button">Not now</button>
+              <button class="dialog-primary-button" data-role="dialog-primary" type="button">Continue</button>
+            </div>
+          </div>
+        </section>
+
         <footer class="bottom-hud">
           <div class="dock-side">
             <button class="nav-orb mint" type="button" aria-label="Map">

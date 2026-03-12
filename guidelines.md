@@ -12,8 +12,8 @@ Git history is available in this folder. The changelog below still includes a re
 - Product name in UI metadata: `English Town`
 - App type: static HTML/CSS/JavaScript prototype
 - Runtime model: client-side only, no backend, no build step, with browser-local persistence via `localStorage`
-- Primary interaction: press the dice button to roll, animate the dice, move the player token around the board, collect fixed coins per tile moved, and land on either regular or special tiles
-- Current featured special-tile activity: a popup word-matching mini-game called `Lexicon Link`
+- Primary interaction: press the dice button to roll, animate the dice, move the player token around the board, collect fixed coins per tile moved, and trigger tile-specific popups or penalties on landing
+- Current fixed board model: `Word Plot`, `Sentence Practice Tile`, `Phonics Challenge Tile`, `Event Tile`, `Jail Tile`, plus the `Launchpad` start tile
 - Design direction: mobile game / casual board game interface with bright gradients, floating HUD elements, and a fixed isometric board presentation
 
 ## Core Features
@@ -47,30 +47,54 @@ Git history is available in this folder. The changelog below still includes a re
 ### 3. Tile types and labels
 - Tile kinds currently supported:
   - `start`
-  - `regular`
-  - `special`
+  - `word_plot`
+  - `sentence_practice`
+  - `phonics_challenge`
+  - `event`
+  - `jail`
 - The first tile is always the `start` tile (`Launchpad`).
-- Regular tiles are generic safe spaces with no challenge effect and no icon markup.
-- All spawned special tiles currently use one shared type and one shared label: `Lexicon Link`.
-- Every special tile currently represents the same word-matching mini-game rather than different challenge types.
-- Each page load randomizes the special tile layout:
-  - at least `4` special tiles
-  - at most `6` special tiles
-  - random non-start positions on the 24-tile ring
-- Refreshing the page keeps player progress but rerolls which positions are special.
+- Tile positions are now fixed across refreshes and revisits; they do not reroll anymore.
+- The board is intentionally distributed so non-start special-purpose tiles are spaced across the ring rather than clustered.
+- There is exactly one `jail` tile on the map.
+- `word_plot` tiles are the most common tile type on the map.
 
 ### 3.5. Coin rewards and tile outcomes
 - Every movement step grants a fixed coin reward, currently `38` coins per tile moved.
 - Coin rewards do not depend on tile type; they are awarded for movement itself.
 - Landing outcomes:
-  - `regular` tile: no extra effect, player can roll again
-  - `special` tile: opens the `Lexicon Link` popup mini-game
-  - `start` tile: no special challenge, just a landing/update message
+  - `word_plot`: opens a property purchase / upgrade popup
+  - `sentence_practice`: opens a sentence construction mini-game popup
+  - `phonics_challenge`: opens the `Lexicon Link` popup mini-game
+  - `event`: opens a lightweight event / conversation popup with a coin reward
+  - `jail`: deducts dice and coins, then returns the player to `Launchpad`
+  - `start`: no extra challenge, just a landing/update message
 - Because coin rewards are step-based, a roll of `N` grants `N * 38` coins total by the time movement completes.
 
-### 3.6. Lexicon Link mini-game
-- `Lexicon Link` is the current special tile name and the current recommended label for this challenge type.
-- The mini-game opens as a popup overlay when the player lands on any special tile.
+### 3.6. Word Plot system
+- `Word Plot` tiles map to named properties such as `Church`, `Bank`, `Town Hall`, `Ancestral House`, `Commercial Building`, and other town structures.
+- Each word plot owns one placeholder structure rendered outside the tile ring in the board scene.
+- Structure placeholders are intentionally simple isometric cards with labels and level badges so they can be replaced with custom art later.
+- Ownership / upgrade rules:
+  - first landing: prompt to purchase the property with coins
+  - later landings: prompt to upgrade if the property is already owned
+  - property levels currently run from `0` to `3`
+- Property ownership and levels are persisted in `localStorage`.
+
+### 3.7. Sentence Studio mini-game
+- `Sentence Studio` is the current `sentence_practice` tile label.
+- It opens as a popup overlay.
+- Gameplay rules:
+  - present a sentence clue
+  - provide a shuffled word bank
+  - player taps words in order to reconstruct the sentence
+  - a `30` second timer limits the round
+- Reward rule:
+  - successful completion grants `+160` bonus coins
+  - timeout grants no bonus coins
+
+### 3.8. Lexicon Link mini-game
+- `Lexicon Link` is the current `phonics_challenge` tile label.
+- It opens as a popup overlay when the player lands on a phonics challenge tile.
 - Gameplay rules:
   - show `5` English words
   - show `5` Chinese translations
@@ -80,6 +104,17 @@ Git history is available in this folder. The changelog below still includes a re
   - clearing all matches before time expires grants `+180` bonus coins
   - timing out grants no bonus coins
 - The popup blocks further dice rolls until the player resolves the mini-game and closes it.
+
+### 3.9. Event and Jail tiles
+- `Event Tile`
+  - currently opens a short conversation / listening-style popup
+  - completing the conversation grants `+110` bonus coins
+  - there is no penalty path
+- `Jail Tile`
+  - immediately deducts `2` dice from the player's current total, consuming overflow dice first if present
+  - deducts `120` coins
+  - returns the player to the `Launchpad` tile
+  - then opens a confirmation popup
 
 ### 4. Dice system
 - Dice faces are limited to standard values `1` through `6`.
@@ -174,15 +209,15 @@ Git history is available in this folder. The changelog below still includes a re
 1. `bootstrap()` builds the tile list and sets the initial status.
 2. `bootstrap()` also loads any persisted progress from `localStorage`.
 3. The first render shows the board, HUD, dice, token, current coin total, and any currently active free-dice claim button.
-4. Special tile positions are regenerated for the current page load, even if player progress was restored.
+4. The fixed board layout is rebuilt, and restored progress is placed onto that stable layout.
 5. User clicks the dice button.
 6. `handleRoll()` spends one usable die, enters rolling state, and animates the dice for `1100ms`.
 7. A final random face is chosen.
 8. `moveToken()` advances the token step by step with `260ms` delays.
 9. On each step, the character sprite rotates toward the next tile, jumps, lands, and adds `38` coins to the saved total.
-10. When movement ends, the landing message depends on whether the destination is a `regular`, `special`, or `start` tile.
-11. If the destination is a special tile, the `Lexicon Link` popup opens immediately.
-12. Clearing the popup mini-game before the timer ends grants extra coins and then returns control to the board.
+10. When movement ends, the landing message depends on the destination tile type.
+11. Word plots, sentence practice, phonics, event, and jail each open their own popup or consequence flow.
+12. Mini-game or event rewards add bonus coins on success / completion.
 13. If no usable dice remain, the roll button stays disabled until dice are added again.
 
 ## State Model
@@ -202,9 +237,12 @@ Tracked fields:
 - `isRolling`: true during dice animation
 - `isMoving`: true during token travel
 - `isMiniGameOpen`: true while the popup word-matching challenge is active
+- `isSentenceGameOpen`: true while the sentence construction popup is active
+- `isDialogOpen`: true while the generic property / event / jail popup is active
 - `facing`: current sprite orientation (`SE`, `SW`, `NW`, `NE`)
 - `isJumping`: true during the airborne half of each movement step
 - `activeFreeDiceOfferId`: the currently claimable free-dice condition, if any
+- `properties`: persisted ownership / level data for all word plots
 - `miniGamePairs`: the active set of 5 word/translation pairs
 - `miniGameTranslations`: the shuffled translation column order for the current popup
 - `miniGameMatchedIds`: matched pair ids for the current popup
@@ -212,6 +250,15 @@ Tracked fields:
 - `miniGameSelectedTranslationId`: currently selected Chinese translation
 - `miniGameTimeLeft`: remaining seconds in the popup challenge
 - `miniGameResult`: `success`, `failure`, or `null` while the challenge is unresolved
+- `sentencePuzzle`: the active sentence practice prompt
+- `sentenceWordBank`: shuffled words for the current sentence popup
+- `sentenceSelectedWords`: current player word order
+- `sentenceTimeLeft`: remaining seconds in the sentence popup
+- `sentenceResult`: `success`, `failure`, or `null`
+- `dialogMode`: current generic popup mode (`property`, `event`, `jail`, or `null`)
+- `dialogPropertyId`: active property id when a word plot popup is open
+- `dialogConversationStep`: current line index for the event popup
+- `dialogStatus`: transient inline feedback inside the generic popup
 
 ## File Responsibilities
 
@@ -220,24 +267,27 @@ Tracked fields:
 - Provides `data-role` hooks for JavaScript rendering.
 - Contains the coin counter pill in the top HUD.
 - Contains the dice meter DOM, bonus dice label, store `+` button, and the free-dice claim button shell.
-- Contains the popup modal shell for the `Lexicon Link` mini-game.
+- Contains popup modal shells for:
+  - `Lexicon Link`
+  - `Sentence Studio`
+  - the generic property / event / jail dialog
 - Loads `styles.css` and `main.js`.
 
 ### `main.js`
 - Owns all game logic.
 - Generates tiles and positions.
-- Randomizes which non-start tiles are special for the current page load.
+- Builds the fixed tile layout and property mapping.
 - Defines the isometric projection from logical board coordinates into screen space.
 - Builds dynamic SVG dice markup.
-- Renders board, token sprite, dice, HUD, camera movement, and popup mini-game state.
-- Persists player progress such as position, coins, and dice inventory in `localStorage`.
-- Handles dice inventory, coin rewards, popup challenge logic, free-dice claim sequencing, roll interaction, and movement sequencing.
+- Renders board, placeholder property structures, token sprite, dice, HUD, camera movement, and popup state.
+- Persists player progress such as position, coins, dice inventory, and property levels in `localStorage`.
+- Handles dice inventory, coin rewards, property ownership/upgrades, popup challenge logic, free-dice claim sequencing, roll interaction, jail penalties, and movement sequencing.
 
 ### `styles.css`
 - Defines the entire visual identity of the prototype.
 - Uses gradients, shadows, pseudo-elements, and animations extensively.
 - Owns the token sprite presentation, directional pose treatment, and jump motion.
-- Styles the dice meter, coin HUD pill, popup mini-game, placeholder store button, and animated free-dice event button.
+- Styles the dice meter, coin HUD pill, popup mini-games, placeholder property structures, placeholder store button, and animated free-dice event button.
 - Contains responsive adjustments for narrower screens.
 
 ## UX / Visual Characteristics
@@ -247,7 +297,9 @@ Tracked fields:
 - Fixed isometric viewpoint with rounded-corner board tiles that use inset panels, soft texture, and slight volume
 - Centerpiece 3D dice cube button with arcade-style motion
 - A persistent top-HUD coin counter that increases by a fixed amount per tile moved
+- Placeholder isometric property structures placed outside the tile ring and labeled for easy asset replacement
 - A centered popup card for `Lexicon Link` with a timer, reward badge, and two matching columns
+- A separate sentence-construction popup and a lightweight dialog popup for properties, events, and jail
 - A blue-filled dice meter and a floating event-style free-dice claim badge near the dice dock
 - Cartoon token with simple layered body parts
 - Decorative game-economy style labels such as `Mayor`, `Lv. 2`, `Tile`, and `Mode`
@@ -255,10 +307,11 @@ Tracked fields:
 ## Known Limitations
 - No multiplayer
 - No backend or cross-device save system; persistence is local to the current browser via `localStorage`
-- No ownership, rent, spending, or card mechanics beyond passive coin accumulation
+- No rent, opponent interaction, or card mechanics yet; ownership currently stops at purchase and upgrade state only
 - No event handling for non-dice buttons
-- Only one language-learning mini-game exists so far: `Lexicon Link`
-- All special tiles currently point to the same mini-game type instead of a varied special-tile catalog
+- Only one phonics challenge exists so far: `Lexicon Link`
+- Event tiles use one placeholder conversation flow only
+- Property structures are placeholders, not final player-supplied assets
 - The store `+` button beside the dice meter is UI-only for now; real-money purchase flow is not implemented
 - The free-dice condition system is only scaffolded with a single sample condition and no real gameplay triggers yet
 - No board data externalization; content is hardcoded in JavaScript
@@ -309,9 +362,12 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 - Tightened the dice dock layout so the meter and store button sit as one centered row, lifted the whole dice cluster above the bottom nav, and moved the free-dice badge farther up-left from the main roll button.
 - Widened the dice meter label area so overflow rewards such as `15/15 +2` remain visible inside the meter instead of being clipped.
 - Added fixed `38`-coin rewards per movement step, a saved coin counter, and browser-local persistence for player progress.
-- Reworked the board so only `4` to `6` tiles are special on each load, while special positions reroll on refresh without resetting the saved player position or resources.
-- Added the `Lexicon Link` popup mini-game with 5 English-to-Chinese matches, a 25 second timer, and a +180 coin success reward.
-- Changed all randomly spawned special tiles to use the same `Lexicon Link` challenge type for now.
+- Replaced the random special-tile layout with a fixed evenly spread board that includes `Word Plot`, `Sentence Practice`, `Phonics Challenge`, `Event`, and `Jail` tiles.
+- Added placeholder isometric property structures with purchase / upgrade prompts and persistent level state.
+- Added `Sentence Studio`, a sentence-order mini-game with a 30 second timer and a +160 coin reward.
+- Kept `Lexicon Link` as the current phonics challenge tile and popup mini-game.
+- Added event conversation popups with a +110 coin completion reward.
+- Added a jail tile that deducts coins and dice, then sends the player back to `Launchpad`.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:

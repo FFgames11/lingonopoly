@@ -5,13 +5,13 @@ const defaultDiceCount = 15;
 const coinRewardPerStep = 38;
 const wordMatchRewardCoins = 180;
 const wordMatchTimeLimitSeconds = 25;
-const wordMatchTile = {
-  label: 'Lexicon Link',
-  theme: 'blueSpark',
-};
+const sentencePracticeRewardCoins = 160;
+const sentencePracticeTimeLimitSeconds = 30;
+const eventTileRewardCoins = 110;
+const jailCoinPenalty = 120;
+const jailDicePenalty = 2;
+const phonicsTileLabel = 'Lexicon Link';
 const persistedStateKey = 'english-town-state-v3';
-const minSpecialTilesPerBoard = 4;
-const maxSpecialTilesPerBoard = 6;
 const tileWidth = 114;
 const tileHeight = 64;
 const originX = 160;
@@ -34,6 +34,31 @@ const wordMatchVocabularyPool = [
   { id: 'market', word: 'market', translation: '市场' },
   { id: 'sun', word: 'sun', translation: '太阳' },
   { id: 'train', word: 'train', translation: '火车' },
+];
+const sentencePracticePuzzles = [
+  {
+    id: 'read-books',
+    clue: 'Arrange the words to describe an after-school habit.',
+    translation: 'I read books after school.',
+    words: ['I', 'read', 'books', 'after', 'school'],
+  },
+  {
+    id: 'practice-english',
+    clue: 'Build a sentence about a daily learning routine.',
+    translation: 'We practice English every morning.',
+    words: ['We', 'practice', 'English', 'every', 'morning'],
+  },
+  {
+    id: 'grandmother-church',
+    clue: 'Build a sentence about where a family member lives.',
+    translation: 'My grandmother lives near church.',
+    words: ['My', 'grandmother', 'lives', 'near', 'church'],
+  },
+];
+const eventConversationLines = [
+  { speaker: 'Guide', text: 'The town square is lively today. Listen closely to how people greet each other.' },
+  { speaker: 'Mayor', text: 'Good morning. Clear sentences help everyone understand directions and ideas.' },
+  { speaker: 'Guide', text: 'You stayed for the full conversation. Here is a small coin bonus for your attention.' },
 ];
 
 const pipLayout = {
@@ -107,6 +132,50 @@ const cubePlanes = {
 };
 
 const startTileLabel = 'Launchpad';
+const sentencePracticeTileLabel = 'Sentence Studio';
+const eventTileLabel = 'Listening Lounge';
+const jailTileLabel = 'Jail';
+const propertyCatalog = {
+  church: { label: 'Church', costs: [120, 220, 360] },
+  bank: { label: 'Bank', costs: [140, 240, 390] },
+  townHall: { label: 'Town Hall', costs: [160, 260, 420] },
+  ancestralHouse: { label: 'Ancestral House', costs: [130, 230, 370] },
+  commercialCenter: { label: 'Commercial Building', costs: [150, 270, 430] },
+  library: { label: 'Library', costs: [135, 235, 380] },
+  marketHall: { label: 'Market Hall', costs: [145, 250, 400] },
+  bakery: { label: 'Bakery', costs: [125, 215, 345] },
+  schoolhouse: { label: 'Schoolhouse', costs: [155, 255, 410] },
+  clinic: { label: 'Clinic', costs: [150, 245, 395] },
+  communityHall: { label: 'Community Hall', costs: [145, 240, 385] },
+  teaHouse: { label: 'Tea House', costs: [130, 225, 355] },
+  guildOffice: { label: 'Guild Office', costs: [150, 250, 405] },
+};
+const boardTileBlueprints = [
+  { kind: 'start', label: startTileLabel },
+  { kind: 'word_plot', propertyId: 'church' },
+  { kind: 'sentence_practice', label: sentencePracticeTileLabel },
+  { kind: 'word_plot', propertyId: 'bank' },
+  { kind: 'phonics_challenge', label: phonicsTileLabel },
+  { kind: 'word_plot', propertyId: 'townHall' },
+  { kind: 'event', label: eventTileLabel },
+  { kind: 'word_plot', propertyId: 'ancestralHouse' },
+  { kind: 'sentence_practice', label: sentencePracticeTileLabel },
+  { kind: 'word_plot', propertyId: 'commercialCenter' },
+  { kind: 'phonics_challenge', label: phonicsTileLabel },
+  { kind: 'word_plot', propertyId: 'library' },
+  { kind: 'jail', label: jailTileLabel },
+  { kind: 'word_plot', propertyId: 'marketHall' },
+  { kind: 'event', label: eventTileLabel },
+  { kind: 'word_plot', propertyId: 'bakery' },
+  { kind: 'sentence_practice', label: sentencePracticeTileLabel },
+  { kind: 'word_plot', propertyId: 'schoolhouse' },
+  { kind: 'phonics_challenge', label: phonicsTileLabel },
+  { kind: 'word_plot', propertyId: 'clinic' },
+  { kind: 'event', label: eventTileLabel },
+  { kind: 'word_plot', propertyId: 'communityHall' },
+  { kind: 'word_plot', propertyId: 'teaHouse' },
+  { kind: 'word_plot', propertyId: 'guildOffice' },
+];
 
 const tileThemes = {
   orangeHome: {
@@ -213,7 +282,7 @@ const tileThemes = {
 };
 
 const regularTileThemes = [tileThemes.regularMint, tileThemes.regularStone];
-const persistedStateFields = ['tiles', 'position', 'diceCount', 'diceMax', 'overflowDice', 'coins', 'lastRoll', 'activeFreeDiceOfferId'];
+const persistedStateFields = ['position', 'diceCount', 'diceMax', 'overflowDice', 'coins', 'lastRoll', 'activeFreeDiceOfferId', 'properties'];
 
 const state = {
   tiles: [],
@@ -229,9 +298,12 @@ const state = {
   isRolling: false,
   isMoving: false,
   isMiniGameOpen: false,
+  isSentenceGameOpen: false,
+  isDialogOpen: false,
   facing: 'SE',
   isJumping: false,
   activeFreeDiceOfferId: freeDiceOffers[0]?.id ?? null,
+  properties: {},
   miniGamePairs: [],
   miniGameTranslations: [],
   miniGameMatchedIds: [],
@@ -240,11 +312,23 @@ const state = {
   miniGameStatus: 'Pick a word, then choose the matching translation.',
   miniGameTimeLeft: wordMatchTimeLimitSeconds,
   miniGameResult: null,
+  sentencePuzzle: null,
+  sentenceWordBank: [],
+  sentenceSelectedWords: [],
+  sentenceTimeLeft: sentencePracticeTimeLimitSeconds,
+  sentenceStatus: 'Tap the words in the correct order.',
+  sentenceResult: null,
+  dialogMode: null,
+  dialogTileIndex: null,
+  dialogPropertyId: null,
+  dialogConversationStep: 0,
+  dialogStatus: '',
 };
 
 let diceIntervalId = null;
 let statusTimeoutId = null;
 let miniGameTimerId = null;
+let sentenceGameTimerId = null;
 
 function getDirection(from, to) {
   const dx = to.gridX - from.gridX;
@@ -283,6 +367,26 @@ const dom = {
   minigameStatus: document.querySelector('[data-role="minigame-status"]'),
   minigameProgress: document.querySelector('[data-role="minigame-progress"]'),
   minigameAction: document.querySelector('[data-role="minigame-action"]'),
+  sentenceModal: document.querySelector('[data-role="sentence-modal"]'),
+  sentenceTitle: document.querySelector('[data-role="sentence-title"]'),
+  sentenceTimer: document.querySelector('[data-role="sentence-timer"]'),
+  sentenceReward: document.querySelector('[data-role="sentence-reward"]'),
+  sentenceClue: document.querySelector('[data-role="sentence-clue"]'),
+  sentenceTarget: document.querySelector('[data-role="sentence-target"]'),
+  sentenceBuilder: document.querySelector('[data-role="sentence-builder"]'),
+  sentenceBank: document.querySelector('[data-role="sentence-bank"]'),
+  sentenceStatus: document.querySelector('[data-role="sentence-status"]'),
+  sentenceProgress: document.querySelector('[data-role="sentence-progress"]'),
+  sentenceClear: document.querySelector('[data-role="sentence-clear"]'),
+  sentenceAction: document.querySelector('[data-role="sentence-action"]'),
+  dialogModal: document.querySelector('[data-role="dialog-modal"]'),
+  dialogKicker: document.querySelector('[data-role="dialog-kicker"]'),
+  dialogTitle: document.querySelector('[data-role="dialog-title"]'),
+  dialogCopy: document.querySelector('[data-role="dialog-copy"]'),
+  dialogMeta: document.querySelector('[data-role="dialog-meta"]'),
+  dialogStatus: document.querySelector('[data-role="dialog-status"]'),
+  dialogPrimary: document.querySelector('[data-role="dialog-primary"]'),
+  dialogSecondary: document.querySelector('[data-role="dialog-secondary"]'),
   boardStage: document.querySelector('[data-role="board-stage"]'),
   boardPlane: document.querySelector('[data-role="board-plane"]'),
 };
@@ -293,10 +397,6 @@ function delay(ms) {
 
 function getRandomFace() {
   return rollFaces[Math.floor(Math.random() * rollFaces.length)];
-}
-
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function shuffleArray(items) {
@@ -317,6 +417,38 @@ function stopMiniGameTimer() {
   }
 }
 
+function stopSentenceGameTimer() {
+  if (sentenceGameTimerId) {
+    window.clearInterval(sentenceGameTimerId);
+    sentenceGameTimerId = null;
+  }
+}
+
+function buildDefaultPropertiesState() {
+  return Object.fromEntries(
+    Object.keys(propertyCatalog).map((propertyId) => [propertyId, { level: 0 }]),
+  );
+}
+
+function normalizePersistedProperties(properties) {
+  const defaultProperties = buildDefaultPropertiesState();
+
+  if (!properties || typeof properties !== 'object') {
+    return defaultProperties;
+  }
+
+  return Object.fromEntries(
+    Object.keys(propertyCatalog).map((propertyId) => {
+      const level = clampInteger(properties[propertyId]?.level ?? 0, 0, 3);
+      return [propertyId, { level }];
+    }),
+  );
+}
+
+function isAnyModalOpen() {
+  return state.isMiniGameOpen || state.isSentenceGameOpen || state.isDialogOpen;
+}
+
 function clampInteger(value, minimum, maximum) {
   if (!Number.isFinite(value)) {
     return minimum;
@@ -326,27 +458,49 @@ function clampInteger(value, minimum, maximum) {
   return Math.min(Math.max(nextValue, minimum), maximum);
 }
 
-function buildSpecialTileAssignments(tileCount) {
-  const shuffledPositions = shuffleArray(Array.from({ length: tileCount - 1 }, (_, index) => index + 1));
-  const specialTileCount = getRandomInt(minSpecialTilesPerBoard, Math.min(maxSpecialTilesPerBoard, tileCount - 1));
-  const assignments = new Map();
-
-  shuffledPositions.slice(0, specialTileCount).forEach((position) => {
-    assignments.set(position, {
-      label: wordMatchTile.label,
-      theme: tileThemes[wordMatchTile.theme],
-    });
-  });
-
-  return assignments;
-}
-
 function buildWordMatchPairs() {
   return shuffleArray(wordMatchVocabularyPool).slice(0, 5);
 }
 
+function buildSentencePuzzle() {
+  const puzzle = shuffleArray(sentencePracticePuzzles)[0];
+
+  return {
+    ...puzzle,
+    bank: shuffleArray(puzzle.words),
+  };
+}
+
 function getRegularTileTheme(index) {
   return regularTileThemes[index % regularTileThemes.length];
+}
+
+function getTileThemeForBlueprint(kind, index) {
+  if (kind === 'start') {
+    return tileThemes.orangeHome;
+  }
+
+  if (kind === 'word_plot') {
+    return getRegularTileTheme(index);
+  }
+
+  if (kind === 'sentence_practice') {
+    return tileThemes.goldCheck;
+  }
+
+  if (kind === 'phonics_challenge') {
+    return tileThemes.blueSpark;
+  }
+
+  if (kind === 'event') {
+    return tileThemes.periwinkleMark;
+  }
+
+  if (kind === 'jail') {
+    return tileThemes.slateBars;
+  }
+
+  return tileThemes.regularStone;
 }
 
 function getPersistedSnapshot() {
@@ -382,6 +536,7 @@ function normalizePersistedSnapshot(snapshot, tileCount) {
     coins: Math.max(0, Math.trunc(snapshot.coins ?? 0)),
     lastRoll: rollFaces.includes(snapshot.lastRoll) ? snapshot.lastRoll : null,
     activeFreeDiceOfferId: normalizedOfferId,
+    properties: normalizePersistedProperties(snapshot.properties),
   };
 }
 
@@ -398,6 +553,7 @@ function persistStateSnapshot() {
     coins: state.coins,
     lastRoll: state.lastRoll,
     activeFreeDiceOfferId: state.activeFreeDiceOfferId,
+    properties: state.properties,
   };
 
   try {
@@ -419,8 +575,29 @@ function getDiceFillPercent() {
   return Math.max(0, Math.min(100, (state.diceCount / state.diceMax) * 100));
 }
 
+function applyDicePenalty(penalty) {
+  let remainingPenalty = penalty;
+  let nextOverflowDice = state.overflowDice;
+  let nextDiceCount = state.diceCount;
+
+  if (nextOverflowDice > 0) {
+    const overflowLoss = Math.min(nextOverflowDice, remainingPenalty);
+    nextOverflowDice -= overflowLoss;
+    remainingPenalty -= overflowLoss;
+  }
+
+  if (remainingPenalty > 0) {
+    nextDiceCount = Math.max(0, nextDiceCount - remainingPenalty);
+  }
+
+  return {
+    diceCount: nextDiceCount,
+    overflowDice: nextOverflowDice,
+  };
+}
+
 function canRollDice() {
-  return state.tiles.length > 0 && !state.isRolling && !state.isMoving && !state.isMiniGameOpen && state.diceCount + state.overflowDice > 0;
+  return state.tiles.length > 0 && !state.isRolling && !state.isMoving && !isAnyModalOpen() && state.diceCount + state.overflowDice > 0;
 }
 
 function projectPointToPlane([u, v], plane) {
@@ -507,25 +684,53 @@ function buildRingCoordinates(size) {
 
 function buildTiles() {
   const coordinates = buildRingCoordinates(7);
-  const specialTileAssignments = buildSpecialTileAssignments(coordinates.length);
-
   return coordinates.map((coord, index) => {
-    const specialTile = specialTileAssignments.get(index);
-    const kind = index === 0 ? 'start' : specialTile ? 'special' : 'regular';
-    const theme = index === 0 ? tileThemes.orangeHome : specialTile ? specialTile.theme : getRegularTileTheme(index);
-    const label = index === 0 ? startTileLabel : specialTile ? specialTile.label : `Regular Tile ${index}`;
+    const blueprint = boardTileBlueprints[index];
+    const theme = getTileThemeForBlueprint(blueprint.kind, index);
+    const propertyMeta = blueprint.propertyId ? propertyCatalog[blueprint.propertyId] : null;
 
     return {
       id: `tile-${index}`,
-      label,
-      kind,
+      label: blueprint.label || propertyMeta?.label || `Tile ${index + 1}`,
+      kind: blueprint.kind,
       theme,
       icon: theme.icon,
+      propertyId: blueprint.propertyId ?? null,
+      propertyLabel: propertyMeta?.label ?? null,
+      propertyCosts: propertyMeta?.costs ?? null,
       gridX: coord.x,
       gridY: coord.y,
       ...toScreenPosition(coord.x, coord.y),
     };
   });
+}
+
+function getStructureOffset(tile) {
+  const maxGrid = 6;
+
+  if (tile.gridY === 0) {
+    return { x: -4, y: -92 };
+  }
+
+  if (tile.gridX === maxGrid) {
+    return { x: 86, y: -12 };
+  }
+
+  if (tile.gridY === maxGrid) {
+    return { x: -4, y: 86 };
+  }
+
+  return { x: -98, y: -12 };
+}
+
+function getStructureStyle(tile) {
+  const offset = getStructureOffset(tile);
+
+  return [
+    `left:${tile.screenX + tileWidth / 2 - 48 + offset.x}px`,
+    `top:${tile.screenY + tileHeight / 2 - 42 + offset.y}px`,
+    `z-index:${tile.screenY + 2}`,
+  ].join(';');
 }
 
 function getDiceMarkup(face, className, variant) {
@@ -596,7 +801,7 @@ function openWordMatchMiniGame() {
     miniGameStatus: 'Pick a word, then choose the matching translation.',
     miniGameTimeLeft: wordMatchTimeLimitSeconds,
     miniGameResult: null,
-    status: `${wordMatchTile.label} opened. Match all 5 words before time runs out.`,
+    status: `${phonicsTileLabel} opened. Match all 5 words before time runs out.`,
   });
 
   miniGameTimerId = window.setInterval(() => {
@@ -613,7 +818,7 @@ function openWordMatchMiniGame() {
         miniGameSelectedWordId: null,
         miniGameSelectedTranslationId: null,
         miniGameStatus: 'Time is up. No bonus coins this round.',
-        status: `${wordMatchTile.label} ended. No bonus coins earned.`,
+        status: `${phonicsTileLabel} ended. No bonus coins earned.`,
       });
       return;
     }
@@ -667,16 +872,18 @@ function resolveWordMatchSelection() {
       miniGameSelectedTranslationId: null,
       miniGameResult: 'success',
       miniGameStatus: `Perfect. You earned +${wordMatchRewardCoins} bonus coins.`,
-      status: `${wordMatchTile.label} cleared. +${wordMatchRewardCoins} bonus coins awarded.`,
+      status: `${phonicsTileLabel} cleared. +${wordMatchRewardCoins} bonus coins awarded.`,
     });
     return;
   }
+
+  const matchedPair = state.miniGamePairs.find((pair) => pair.id === state.miniGameSelectedWordId);
 
   updateState({
     miniGameMatchedIds: nextMatchedIds,
     miniGameSelectedWordId: null,
     miniGameSelectedTranslationId: null,
-    miniGameStatus: `Matched ${state.miniGameSelectedWordId}. Keep going.`,
+    miniGameStatus: `Matched ${matchedPair?.word || 'one pair'}. Keep going.`,
   });
 }
 
@@ -715,7 +922,7 @@ function renderMiniGame() {
 
   const isResolved = Boolean(state.miniGameResult);
 
-  dom.minigameTitle.textContent = wordMatchTile.label;
+  dom.minigameTitle.textContent = phonicsTileLabel;
   dom.minigameTimer.textContent = `${state.miniGameTimeLeft}s`;
   dom.minigameReward.textContent = `+${wordMatchRewardCoins} coins`;
   dom.minigameCopy.textContent = 'Match each English word with its Chinese translation before the timer ends.';
@@ -765,30 +972,335 @@ function renderMiniGame() {
     .join('');
 }
 
+function openSentencePracticeGame() {
+  stopSentenceGameTimer();
+  const puzzle = buildSentencePuzzle();
+
+  updateState({
+    isSentenceGameOpen: true,
+    sentencePuzzle: puzzle,
+    sentenceWordBank: puzzle.bank,
+    sentenceSelectedWords: [],
+    sentenceTimeLeft: sentencePracticeTimeLimitSeconds,
+    sentenceStatus: 'Tap the words in the correct order.',
+    sentenceResult: null,
+    status: `${sentencePracticeTileLabel} opened. Build the sentence before time runs out.`,
+  });
+
+  sentenceGameTimerId = window.setInterval(() => {
+    if (state.sentenceResult) {
+      stopSentenceGameTimer();
+      return;
+    }
+
+    if (state.sentenceTimeLeft <= 1) {
+      stopSentenceGameTimer();
+      updateState({
+        sentenceTimeLeft: 0,
+        sentenceResult: 'failure',
+        sentenceStatus: 'Time is up. No bonus coins this round.',
+        status: `${sentencePracticeTileLabel} ended. No bonus coins earned.`,
+      });
+      return;
+    }
+
+    updateState({
+      sentenceTimeLeft: state.sentenceTimeLeft - 1,
+    });
+  }, 1000);
+}
+
+function closeSentencePracticeGame() {
+  stopSentenceGameTimer();
+  updateState({
+    isSentenceGameOpen: false,
+    sentencePuzzle: null,
+    sentenceWordBank: [],
+    sentenceSelectedWords: [],
+    sentenceTimeLeft: sentencePracticeTimeLimitSeconds,
+    sentenceStatus: 'Tap the words in the correct order.',
+    sentenceResult: null,
+  });
+}
+
+function handleSentenceWordSelect(word) {
+  if (!state.isSentenceGameOpen || state.sentenceResult || state.sentenceSelectedWords.includes(word)) {
+    return;
+  }
+
+  const nextSelectedWords = [...state.sentenceSelectedWords, word];
+  const completedSentence = nextSelectedWords.length === state.sentencePuzzle.words.length;
+
+  if (!completedSentence) {
+    updateState({
+      sentenceSelectedWords: nextSelectedWords,
+      sentenceStatus: 'Keep going.',
+    });
+    return;
+  }
+
+  const isCorrect = nextSelectedWords.every((selectedWord, index) => selectedWord === state.sentencePuzzle.words[index]);
+
+  if (!isCorrect) {
+    updateState({
+      sentenceSelectedWords: [],
+      sentenceStatus: 'That order is not correct. Try again.',
+    });
+    return;
+  }
+
+  stopSentenceGameTimer();
+  updateState({
+    coins: state.coins + sentencePracticeRewardCoins,
+    sentenceSelectedWords: nextSelectedWords,
+    sentenceResult: 'success',
+    sentenceStatus: `Great sentence. You earned +${sentencePracticeRewardCoins} coins.`,
+    status: `${sentencePracticeTileLabel} cleared. +${sentencePracticeRewardCoins} bonus coins awarded.`,
+  });
+}
+
+function handleSentenceClear() {
+  if (!state.isSentenceGameOpen || state.sentenceResult) {
+    return;
+  }
+
+  updateState({
+    sentenceSelectedWords: [],
+    sentenceStatus: 'Sentence cleared. Try again.',
+  });
+}
+
+function renderSentenceGame() {
+  dom.sentenceModal.hidden = !state.isSentenceGameOpen;
+
+  if (!state.isSentenceGameOpen || !state.sentencePuzzle) {
+    return;
+  }
+
+  const isResolved = Boolean(state.sentenceResult);
+
+  dom.sentenceTitle.textContent = sentencePracticeTileLabel;
+  dom.sentenceTimer.textContent = `${state.sentenceTimeLeft}s`;
+  dom.sentenceReward.textContent = `+${sentencePracticeRewardCoins} coins`;
+  dom.sentenceClue.textContent = state.sentencePuzzle.clue;
+  dom.sentenceTarget.textContent = state.sentencePuzzle.translation;
+  dom.sentenceStatus.textContent = state.sentenceStatus;
+  dom.sentenceProgress.textContent = `${state.sentenceSelectedWords.length}/${state.sentencePuzzle.words.length} placed`;
+  dom.sentenceAction.hidden = !isResolved;
+  dom.sentenceAction.textContent = state.sentenceResult === 'success' ? 'Collect' : 'Continue';
+
+  dom.sentenceBuilder.innerHTML = state.sentencePuzzle.words
+    .map((_, index) => {
+      const placedWord = state.sentenceSelectedWords[index];
+      const className = placedWord ? 'sentence-chip is-slotted' : 'sentence-chip is-missing';
+      return `<span class="${className}">${placedWord || '...'}</span>`;
+    })
+    .join('');
+
+  dom.sentenceBank.innerHTML = state.sentenceWordBank
+    .map((word) => {
+      const alreadyUsed = state.sentenceSelectedWords.includes(word);
+      return `
+        <button class="sentence-chip" data-action="sentence-word" data-word="${word}" ${alreadyUsed || isResolved ? 'disabled' : ''} type="button">
+          ${word}
+        </button>
+      `;
+    })
+    .join('');
+}
+
+function openDialog(mode, options = {}) {
+  updateState({
+    isDialogOpen: true,
+    dialogMode: mode,
+    dialogTileIndex: options.tileIndex ?? null,
+    dialogPropertyId: options.propertyId ?? null,
+    dialogConversationStep: options.step ?? 0,
+    dialogStatus: options.status ?? '',
+    status: options.boardStatus ?? state.status,
+  });
+}
+
+function closeDialog() {
+  updateState({
+    isDialogOpen: false,
+    dialogMode: null,
+    dialogTileIndex: null,
+    dialogPropertyId: null,
+    dialogConversationStep: 0,
+    dialogStatus: '',
+  });
+}
+
+function getPropertyLevel(propertyId) {
+  return state.properties[propertyId]?.level ?? 0;
+}
+
+function updatePropertyLevel(propertyId, nextLevel) {
+  updateState({
+    properties: {
+      ...state.properties,
+      [propertyId]: {
+        level: nextLevel,
+      },
+    },
+  });
+}
+
+function handlePropertyPrimary() {
+  const propertyId = state.dialogPropertyId;
+  const property = propertyCatalog[propertyId];
+  const currentLevel = getPropertyLevel(propertyId);
+
+  if (!property || currentLevel >= 3) {
+    closeDialog();
+    return;
+  }
+
+  const cost = property.costs[currentLevel];
+  if (state.coins < cost) {
+    updateState({
+      dialogStatus: `You need ${cost - state.coins} more coins.`,
+    });
+    return;
+  }
+
+  updateState({
+    coins: state.coins - cost,
+    dialogStatus: currentLevel === 0 ? `${property.label} purchased.` : `${property.label} upgraded to level ${currentLevel + 1}.`,
+    status: currentLevel === 0 ? `${property.label} unlocked.` : `${property.label} upgraded to level ${currentLevel + 1}.`,
+  });
+  updatePropertyLevel(propertyId, currentLevel + 1);
+  closeDialog();
+}
+
+function handleEventPrimary() {
+  const isLastLine = state.dialogConversationStep >= eventConversationLines.length - 1;
+
+  if (!isLastLine) {
+    updateState({
+      dialogConversationStep: state.dialogConversationStep + 1,
+    });
+    return;
+  }
+
+  updateState({
+    coins: state.coins + eventTileRewardCoins,
+    status: `${eventTileLabel} completed. +${eventTileRewardCoins} coins awarded.`,
+  });
+  closeDialog();
+}
+
+function handleJailPrimary() {
+  closeDialog();
+}
+
+function handleDialogPrimary() {
+  if (state.dialogMode === 'property') {
+    handlePropertyPrimary();
+    return;
+  }
+
+  if (state.dialogMode === 'event') {
+    handleEventPrimary();
+    return;
+  }
+
+  handleJailPrimary();
+}
+
+function renderDialog() {
+  dom.dialogModal.hidden = !state.isDialogOpen;
+
+  if (!state.isDialogOpen) {
+    return;
+  }
+
+  if (state.dialogMode === 'property') {
+    const property = propertyCatalog[state.dialogPropertyId];
+    const currentLevel = getPropertyLevel(state.dialogPropertyId);
+    const isUnowned = currentLevel === 0;
+    const isMaxed = currentLevel >= 3;
+    const nextCost = !isMaxed ? property.costs[currentLevel] : null;
+
+    dom.dialogKicker.textContent = 'Word Plot';
+    dom.dialogTitle.textContent = property.label;
+    dom.dialogCopy.textContent = isUnowned
+      ? `Would you like to spend coins to purchase ${property.label}?`
+      : isMaxed
+        ? `${property.label} is already at its highest level.`
+        : `Would you like to upgrade ${property.label} to level ${currentLevel + 1}?`;
+    dom.dialogMeta.textContent = isMaxed ? 'Level 3 reached' : `Cost: ${nextCost} coins`;
+    dom.dialogStatus.textContent = state.dialogStatus;
+    dom.dialogPrimary.textContent = isMaxed ? 'Close' : isUnowned ? 'Purchase' : 'Upgrade';
+    dom.dialogSecondary.hidden = isMaxed;
+    dom.dialogSecondary.textContent = 'Not now';
+    return;
+  }
+
+  if (state.dialogMode === 'event') {
+    const line = eventConversationLines[state.dialogConversationStep];
+    const isLastLine = state.dialogConversationStep >= eventConversationLines.length - 1;
+
+    dom.dialogKicker.textContent = 'Event Tile';
+    dom.dialogTitle.textContent = line.speaker;
+    dom.dialogCopy.textContent = line.text;
+    dom.dialogMeta.textContent = isLastLine ? `Reward: ${eventTileRewardCoins} coins` : `${state.dialogConversationStep + 1}/${eventConversationLines.length}`;
+    dom.dialogStatus.textContent = state.dialogStatus;
+    dom.dialogPrimary.textContent = isLastLine ? 'Finish' : 'Next';
+    dom.dialogSecondary.hidden = true;
+    return;
+  }
+
+  dom.dialogKicker.textContent = 'Jail Tile';
+  dom.dialogTitle.textContent = jailTileLabel;
+  dom.dialogCopy.textContent = `You were sent back to ${startTileLabel} and lost ${jailDicePenalty} dice plus ${jailCoinPenalty} coins.`;
+  dom.dialogMeta.textContent = 'Penalty applied';
+  dom.dialogStatus.textContent = state.dialogStatus;
+  dom.dialogPrimary.textContent = 'Continue';
+  dom.dialogSecondary.hidden = true;
+}
+
 function getLandingStatus(tile, coinsEarned) {
   const coinCopy = `+${coinsEarned} coins.`;
 
-  if (tile.kind === 'special') {
-    return `Landed on ${tile.label}. ${coinCopy} Word matching challenge opened.`;
+  if (tile.kind === 'word_plot') {
+    return `Landed on ${tile.propertyLabel}. ${coinCopy} Decide whether to purchase or upgrade it.`;
+  }
+
+  if (tile.kind === 'sentence_practice') {
+    return `Landed on ${tile.label}. ${coinCopy} Sentence practice opened.`;
+  }
+
+  if (tile.kind === 'phonics_challenge') {
+    return `Landed on ${tile.label}. ${coinCopy} Phonics challenge opened.`;
+  }
+
+  if (tile.kind === 'event') {
+    return `Landed on ${tile.label}. ${coinCopy} A town event has started.`;
+  }
+
+  if (tile.kind === 'jail') {
+    return `Landed on ${tile.label}. ${coinCopy} Penalty applied and return to ${startTileLabel}.`;
   }
 
   if (tile.kind === 'start') {
     return `Back at ${tile.label}. ${coinCopy} Roll again when ready.`;
   }
 
-  return `Landed on a regular tile. ${coinCopy} Roll again when ready.`;
+  return `Landed on ${tile.label}. ${coinCopy} Roll again when ready.`;
 }
 
 function getResumeStatus(tile) {
-  if (tile.kind === 'special') {
-    return `Welcome back. You are on ${tile.label}. ${wordMatchTile.label} tiles refreshed.`;
+  if (tile.kind === 'word_plot') {
+    return `Welcome back. You are on ${tile.propertyLabel}. Fixed tile positions restored.`;
   }
 
   if (tile.kind === 'start') {
-    return `Welcome back. You are at ${tile.label}. ${wordMatchTile.label} tiles refreshed.`;
+    return `Welcome back. You are at ${tile.label}. Fixed tile positions restored.`;
   }
 
-  return `Welcome back. You are on a regular tile. ${wordMatchTile.label} tiles refreshed.`;
+  return `Welcome back. You are on ${tile.label}. Fixed tile positions restored.`;
 }
 
 function renderHud() {
@@ -812,7 +1324,11 @@ function renderHud() {
   dom.diceLabel.textContent = state.isRolling
     ? 'Rolling...'
     : state.isMiniGameOpen
-      ? 'Challenge open'
+      ? 'Phonics open'
+    : state.isSentenceGameOpen
+      ? 'Sentence open'
+    : state.isDialogOpen
+      ? 'Tile dialog open'
     : state.isMoving
       ? 'Moving...'
       : state.diceCount + state.overflowDice > 0
@@ -829,7 +1345,11 @@ function renderHud() {
     state.isRolling
       ? 'Rolling dice'
       : state.isMiniGameOpen
-        ? 'Mini game is open'
+        ? 'Phonics challenge is open'
+      : state.isSentenceGameOpen
+        ? 'Sentence practice is open'
+      : state.isDialogOpen
+        ? 'Tile dialog is open'
       : state.isMoving
         ? 'Character is moving'
         : state.diceCount + state.overflowDice === 0
@@ -857,6 +1377,23 @@ function renderCamera() {
 }
 
 function renderBoard() {
+  const structuresMarkup = state.tiles
+    .filter((tile) => tile.kind === 'word_plot' && tile.propertyId)
+    .map((tile) => {
+      const propertyLevel = state.properties[tile.propertyId]?.level ?? 0;
+      const levelLabel = propertyLevel === 0 ? 'For Sale' : `Lv. ${propertyLevel}`;
+      const levelNote = propertyLevel === 0 ? 'Tap to buy' : propertyLevel === 3 ? 'Maxed' : 'Upgradeable';
+
+      return `
+        <article class="board-structure" data-level="${propertyLevel}" style="${getStructureStyle(tile)}">
+          <strong class="board-structure-label">${tile.propertyLabel}</strong>
+          <span class="board-structure-level">${levelLabel}</span>
+          <span class="board-structure-note">${levelNote}</span>
+        </article>
+      `;
+    })
+    .join('');
+
   const tilesMarkup = state.tiles
     .map((tile, index) => {
       const currentClass = index === state.position ? 'is-current' : '';
@@ -890,7 +1427,7 @@ function renderBoard() {
     `
     : '';
 
-  dom.boardPlane.innerHTML = `${tilesMarkup}${tokenMarkup}`;
+  dom.boardPlane.innerHTML = `${tilesMarkup}${structuresMarkup}${tokenMarkup}`;
 }
 function render() {
   renderHud();
@@ -898,6 +1435,8 @@ function render() {
   renderBoard();
   renderCamera();
   renderMiniGame();
+  renderSentenceGame();
+  renderDialog();
 }
 
 function updateState(partialState) {
@@ -961,8 +1500,50 @@ async function moveToken(steps) {
     status: getLandingStatus(landedTile, steps * coinRewardPerStep),
   });
 
-  if (landedTile.kind === 'special') {
+  if (landedTile.kind === 'phonics_challenge') {
     openWordMatchMiniGame();
+    return;
+  }
+
+  if (landedTile.kind === 'sentence_practice') {
+    openSentencePracticeGame();
+    return;
+  }
+
+  if (landedTile.kind === 'word_plot') {
+    openDialog('property', {
+      propertyId: landedTile.propertyId,
+      tileIndex: state.position,
+      boardStatus: getLandingStatus(landedTile, steps * coinRewardPerStep),
+    });
+    return;
+  }
+
+  if (landedTile.kind === 'event') {
+    openDialog('event', {
+      tileIndex: state.position,
+      step: 0,
+      boardStatus: getLandingStatus(landedTile, steps * coinRewardPerStep),
+    });
+    return;
+  }
+
+  if (landedTile.kind === 'jail') {
+    const nextDiceState = applyDicePenalty(jailDicePenalty);
+    const nextCoins = Math.max(0, state.coins - jailCoinPenalty);
+
+    updateState({
+      position: 0,
+      diceCount: nextDiceState.diceCount,
+      overflowDice: nextDiceState.overflowDice,
+      coins: nextCoins,
+      status: `${jailTileLabel} penalty applied. Back to ${startTileLabel}.`,
+    });
+
+    openDialog('jail', {
+      tileIndex: 0,
+      boardStatus: `${jailTileLabel} penalty applied. Back to ${startTileLabel}.`,
+    });
   }
 }
 
@@ -1021,6 +1602,7 @@ function bootstrap() {
     coins: persistedSnapshot?.coins ?? 0,
     lastRoll: persistedSnapshot?.lastRoll ?? null,
     activeFreeDiceOfferId: persistedSnapshot?.activeFreeDiceOfferId ?? freeDiceOffers[0]?.id ?? null,
+    properties: persistedSnapshot?.properties ?? buildDefaultPropertiesState(),
     isRolling: false,
     isMoving: false,
     isJumping: false,
@@ -1072,6 +1654,27 @@ dom.minigameModal.addEventListener('click', (event) => {
 
   handleMiniGameChoice(actionTarget.dataset.action, actionTarget.dataset.choiceId);
 });
+dom.sentenceModal.addEventListener('click', (event) => {
+  const wordButton = event.target.closest('[data-action="sentence-word"]');
+  const actionButton = event.target.closest('[data-role="sentence-action"]');
+  const clearButton = event.target.closest('[data-role="sentence-clear"]');
+
+  if (actionButton) {
+    closeSentencePracticeGame();
+    return;
+  }
+
+  if (clearButton) {
+    handleSentenceClear();
+    return;
+  }
+
+  if (wordButton) {
+    handleSentenceWordSelect(wordButton.dataset.word);
+  }
+});
+dom.dialogPrimary.addEventListener('click', handleDialogPrimary);
+dom.dialogSecondary.addEventListener('click', closeDialog);
 window.addEventListener('resize', renderCamera);
 window.addEventListener('beforeunload', () => {
   if (diceIntervalId) {
@@ -1079,6 +1682,7 @@ window.addEventListener('beforeunload', () => {
   }
 
   stopMiniGameTimer();
+  stopSentenceGameTimer();
 });
 
 bootstrap();
