@@ -779,9 +779,9 @@ button {
 
 .dice-meter-track {
   position: relative;
-  width: 120px;
+  width: 148px;
   height: 24px;
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid #f1c471;
   border-radius: 999px;
   background: linear-gradient(180deg, #fff6db, #ffdf9f);
@@ -807,7 +807,7 @@ button {
   position: absolute;
   left: 0;
   top: 0;
-  width: 120px;
+  width: 100%;
   height: 28px;
   display: flex;
   align-items: center;
