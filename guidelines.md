@@ -257,6 +257,7 @@ This section reflects the observable state of the codebase as of March 11, 2026.
 - Documented the character sprite interaction loop, including facing updates, jump timing, and tile-centered token offsets during movement.
 - Added a finite dice inventory with a blue fill meter, `15/15` default counter, and disabled rolling when usable dice reach zero.
 - Added a sample free-dice event button with a one-time claim flow that can generate overflow dice above the `15` cap.
+- Tightened the dice dock layout so the meter and store button sit as one centered row, lifted the whole dice cluster above the bottom nav, and moved the free-dice badge farther up-left from the main roll button.
 
 ## Required Git Workflow After Every Change
 Use this workflow immediately after each applied change so the latest work is committed and pushed to the repository without delay:
