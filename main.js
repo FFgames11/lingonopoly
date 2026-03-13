@@ -141,10 +141,12 @@ const propertyCatalog = {
     label: 'Bank',
     costs: [140, 240, 390],
     art: {
-      src: './assets/buildings/banklv1.png',
-      width: 168,
-      anchorX: 84,
-      anchorY: 122,
+      levels: {
+        1: './assets/buildings/banklv1.png',
+      },
+      width: 92,
+      aspectRatio: 1,
+      rise: 22,
     },
   },
   townHall: { label: 'Town Hall', costs: [160, 260, 420] },
@@ -733,18 +735,81 @@ function getStructureOffset(tile) {
   return { x: -98, y: -12 };
 }
 
+function getArtStructureOffset(tile) {
+  const maxGrid = 6;
+
+  if (tile.gridY === 0) {
+    return { x: 0, y: -tileHeight };
+  }
+
+  if (tile.gridX === maxGrid) {
+    return { x: tileWidth, y: 0 };
+  }
+
+  if (tile.gridY === maxGrid) {
+    return { x: 0, y: tileHeight };
+  }
+
+  return { x: -tileWidth, y: 0 };
+}
+
 function getStructureStyle(tile) {
+  if (tile.propertyArt) {
+    const offset = getArtStructureOffset(tile);
+    const width = tile.propertyArt.width ?? tileWidth;
+    const aspectRatio = tile.propertyArt.aspectRatio ?? 1;
+    const height = Math.round(width / aspectRatio);
+    const rise = tile.propertyArt.rise ?? Math.max(height - tileHeight, 0);
+
+    return [
+      `left:${tile.screenX + offset.x + (tileWidth - width) / 2}px`,
+      `top:${tile.screenY + offset.y - rise}px`,
+      `z-index:${tile.screenY + offset.y + tileHeight + 2}`,
+      `--structure-width:${width}px`,
+      `--structure-height:${height}px`,
+    ].join(';');
+  }
+
   const offset = getStructureOffset(tile);
-  const anchorX = tile.propertyArt?.anchorX ?? 48;
-  const anchorY = tile.propertyArt?.anchorY ?? 42;
-  const width = tile.propertyArt?.width ?? 96;
 
   return [
-    `left:${tile.screenX + tileWidth / 2 - anchorX + offset.x}px`,
-    `top:${tile.screenY + tileHeight / 2 - anchorY + offset.y}px`,
+    `left:${tile.screenX + tileWidth / 2 - 48 + offset.x}px`,
+    `top:${tile.screenY + tileHeight / 2 - 42 + offset.y}px`,
     `z-index:${tile.screenY + 2}`,
-    `--structure-width:${width}px`,
+    `--structure-width:96px`,
   ].join(';');
+}
+
+function getStructureArtSource(propertyArt, propertyLevel) {
+  if (!propertyArt) {
+    return null;
+  }
+
+  if (propertyArt.src) {
+    return propertyArt.src;
+  }
+
+  const levelEntries = Object.entries(propertyArt.levels ?? {})
+    .map(([level, src]) => [Number(level), src])
+    .filter(([level, src]) => Number.isFinite(level) && typeof src === 'string')
+    .sort((left, right) => left[0] - right[0]);
+
+  if (!levelEntries.length) {
+    return null;
+  }
+
+  const targetLevel = Math.max(propertyLevel, 1);
+  let selectedSrc = levelEntries[0][1];
+
+  for (const [level, src] of levelEntries) {
+    if (level > targetLevel) {
+      break;
+    }
+
+    selectedSrc = src;
+  }
+
+  return selectedSrc;
 }
 
 function getDiceMarkup(face, className, variant) {
@@ -1395,23 +1460,17 @@ function renderBoard() {
     .filter((tile) => tile.kind === 'word_plot' && tile.propertyId)
     .map((tile) => {
       const propertyLevel = state.properties[tile.propertyId]?.level ?? 0;
-      const levelLabel = propertyLevel === 0 ? 'For Sale' : `Lv. ${propertyLevel}`;
-      const levelNote = propertyLevel === 0 ? 'Tap to buy' : propertyLevel === 3 ? 'Maxed' : 'Upgradeable';
       const hasArt = Boolean(tile.propertyArt);
       const structureClass = hasArt ? `board-structure has-art structure-${tile.propertyId}` : 'board-structure';
+      const structureArtSrc = getStructureArtSource(tile.propertyArt, propertyLevel);
       const structureBodyMarkup = hasArt
         ? `
-          <img class="board-structure-art" src="${tile.propertyArt.src}" alt="${tile.propertyLabel}">
-          <div class="board-structure-info">
-            <strong class="board-structure-label">${tile.propertyLabel}</strong>
-            <span class="board-structure-level">${levelLabel}</span>
-            <span class="board-structure-note">${levelNote}</span>
-          </div>
+          <img class="board-structure-art" src="${structureArtSrc}" alt="${tile.propertyLabel}">
         `
         : `
           <strong class="board-structure-label">${tile.propertyLabel}</strong>
-          <span class="board-structure-level">${levelLabel}</span>
-          <span class="board-structure-note">${levelNote}</span>
+          <span class="board-structure-level">${propertyLevel === 0 ? 'For Sale' : `Lv. ${propertyLevel}`}</span>
+          <span class="board-structure-note">${propertyLevel === 0 ? 'Tap to buy' : propertyLevel === 3 ? 'Maxed' : 'Upgradeable'}</span>
         `;
 
       return `

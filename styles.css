@@ -753,6 +753,7 @@ button {
 
 .board-structure {
   --structure-width: 96px;
+  --structure-height: auto;
   position: absolute;
   width: var(--structure-width);
   min-height: 72px;
@@ -792,37 +793,19 @@ button {
 }
 
 .board-structure.has-art::after {
-  inset: auto 22px 12px 22px;
-  height: 16px;
-  background: rgba(57, 75, 49, 0.22);
-  filter: blur(8px);
+  content: none;
 }
 
 .board-structure-art {
   display: block;
   width: 100%;
-  height: auto;
+  height: var(--structure-height);
   user-select: none;
   -webkit-user-drag: none;
-  filter: drop-shadow(0 16px 18px rgba(73, 54, 25, 0.2));
-}
-
-.board-structure-info {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  min-width: 108px;
-  padding: 10px 12px;
-  border-radius: 18px;
-  display: grid;
-  gap: 4px;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 240, 0.96), rgba(239, 248, 232, 0.94));
-  box-shadow:
-    0 12px 18px rgba(82, 96, 67, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  transform: translateX(-50%);
-  text-align: center;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 12px rgba(73, 54, 25, 0.16));
+  opacity: 1;
+  transition: opacity 180ms ease;
 }
 
 .board-structure-label {
@@ -849,28 +832,16 @@ button {
   color: #7d89a0;
 }
 
-.board-structure.has-art .board-structure-label {
-  color: #52653b;
-}
-
-.board-structure.has-art .board-structure-level {
-  justify-self: center;
-  background: linear-gradient(180deg, #7ac86d, #3f9c45);
-}
-
-.board-structure.has-art .board-structure-note {
-  color: #708058;
-}
-
 .board-structure[data-level="0"] {
   opacity: 0.86;
 }
 
+.board-structure.has-art[data-level="0"] {
+  opacity: 1;
+}
+
 .board-structure.has-art[data-level="0"] .board-structure-art {
-  filter:
-    saturate(0.92)
-    brightness(0.98)
-    drop-shadow(0 16px 18px rgba(73, 54, 25, 0.16));
+  opacity: 0.34;
 }
 
 .board-structure[data-level="2"] {
@@ -884,10 +855,6 @@ button {
 .board-structure.has-art[data-level="2"],
 .board-structure.has-art[data-level="3"] {
   min-height: 0;
-}
-
-.board-structure.has-art[data-level="3"] .board-structure-level {
-  background: linear-gradient(180deg, #ffd663, #e0ab22);
 }
 
 .player-token {
