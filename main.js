@@ -144,9 +144,13 @@ const propertyCatalog = {
       levels: {
         1: './assets/buildings/banklv1.png',
       },
-      width: 92,
-      aspectRatio: 1,
-      rise: 22,
+      width: 122,
+      height: 122,
+      position: {
+        left: 395,
+        top: 93,
+      },
+      zIndex: 0,
     },
   },
   townHall: { label: 'Town Hall', costs: [160, 260, 420] },
@@ -755,16 +759,22 @@ function getArtStructureOffset(tile) {
 
 function getStructureStyle(tile) {
   if (tile.propertyArt) {
-    const offset = getArtStructureOffset(tile);
     const width = tile.propertyArt.width ?? tileWidth;
-    const aspectRatio = tile.propertyArt.aspectRatio ?? 1;
-    const height = Math.round(width / aspectRatio);
-    const rise = tile.propertyArt.rise ?? Math.max(height - tileHeight, 0);
+    const height = tile.propertyArt.height ?? Math.round(width / (tile.propertyArt.aspectRatio ?? 1));
+    const fixedLeft = tile.propertyArt.position?.left;
+    const fixedTop = tile.propertyArt.position?.top;
+    const left = Number.isFinite(fixedLeft)
+      ? fixedLeft
+      : tile.screenX + getArtStructureOffset(tile).x + (tileWidth - width) / 2;
+    const top = Number.isFinite(fixedTop)
+      ? fixedTop
+      : tile.screenY + getArtStructureOffset(tile).y - (tile.propertyArt.rise ?? Math.max(height - tileHeight, 0));
+    const zIndex = tile.propertyArt.zIndex ?? Math.max(tile.screenY - 2, 1);
 
     return [
-      `left:${tile.screenX + offset.x + (tileWidth - width) / 2}px`,
-      `top:${tile.screenY + offset.y - rise}px`,
-      `z-index:${tile.screenY + offset.y + tileHeight + 2}`,
+      `left:${left}px`,
+      `top:${top}px`,
+      `z-index:${zIndex}`,
       `--structure-width:${width}px`,
       `--structure-height:${height}px`,
     ].join(';');
