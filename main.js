@@ -137,7 +137,16 @@ const eventTileLabel = 'Listening Lounge';
 const jailTileLabel = 'Jail';
 const propertyCatalog = {
   church: { label: 'Church', costs: [120, 220, 360] },
-  bank: { label: 'Bank', costs: [140, 240, 390] },
+  bank: {
+    label: 'Bank',
+    costs: [140, 240, 390],
+    art: {
+      src: './assets/buildings/banklv1.png',
+      width: 168,
+      anchorX: 84,
+      anchorY: 122,
+    },
+  },
   townHall: { label: 'Town Hall', costs: [160, 260, 420] },
   ancestralHouse: { label: 'Ancestral House', costs: [130, 230, 370] },
   commercialCenter: { label: 'Commercial Building', costs: [150, 270, 430] },
@@ -698,6 +707,7 @@ function buildTiles() {
       propertyId: blueprint.propertyId ?? null,
       propertyLabel: propertyMeta?.label ?? null,
       propertyCosts: propertyMeta?.costs ?? null,
+      propertyArt: propertyMeta?.art ?? null,
       gridX: coord.x,
       gridY: coord.y,
       ...toScreenPosition(coord.x, coord.y),
@@ -725,11 +735,15 @@ function getStructureOffset(tile) {
 
 function getStructureStyle(tile) {
   const offset = getStructureOffset(tile);
+  const anchorX = tile.propertyArt?.anchorX ?? 48;
+  const anchorY = tile.propertyArt?.anchorY ?? 42;
+  const width = tile.propertyArt?.width ?? 96;
 
   return [
-    `left:${tile.screenX + tileWidth / 2 - 48 + offset.x}px`,
-    `top:${tile.screenY + tileHeight / 2 - 42 + offset.y}px`,
+    `left:${tile.screenX + tileWidth / 2 - anchorX + offset.x}px`,
+    `top:${tile.screenY + tileHeight / 2 - anchorY + offset.y}px`,
     `z-index:${tile.screenY + 2}`,
+    `--structure-width:${width}px`,
   ].join(';');
 }
 
@@ -1383,12 +1397,26 @@ function renderBoard() {
       const propertyLevel = state.properties[tile.propertyId]?.level ?? 0;
       const levelLabel = propertyLevel === 0 ? 'For Sale' : `Lv. ${propertyLevel}`;
       const levelNote = propertyLevel === 0 ? 'Tap to buy' : propertyLevel === 3 ? 'Maxed' : 'Upgradeable';
-
-      return `
-        <article class="board-structure" data-level="${propertyLevel}" style="${getStructureStyle(tile)}">
+      const hasArt = Boolean(tile.propertyArt);
+      const structureClass = hasArt ? `board-structure has-art structure-${tile.propertyId}` : 'board-structure';
+      const structureBodyMarkup = hasArt
+        ? `
+          <img class="board-structure-art" src="${tile.propertyArt.src}" alt="${tile.propertyLabel}">
+          <div class="board-structure-info">
+            <strong class="board-structure-label">${tile.propertyLabel}</strong>
+            <span class="board-structure-level">${levelLabel}</span>
+            <span class="board-structure-note">${levelNote}</span>
+          </div>
+        `
+        : `
           <strong class="board-structure-label">${tile.propertyLabel}</strong>
           <span class="board-structure-level">${levelLabel}</span>
           <span class="board-structure-note">${levelNote}</span>
+        `;
+
+      return `
+        <article class="${structureClass}" data-level="${propertyLevel}" data-property-id="${tile.propertyId}" style="${getStructureStyle(tile)}">
+          ${structureBodyMarkup}
         </article>
       `;
     })
